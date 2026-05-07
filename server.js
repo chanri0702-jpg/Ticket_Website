@@ -22,6 +22,7 @@ app.use('/api/events',   require('./routes/eventRoutes'))
 app.use('/api/venues',   require('./routes/venueRoutes'))
 app.use('/api/times',    require('./routes/timesRoutes'))
 app.use('/api/bookings', require('./routes/bookingRoutes'))
+app.use('/api/enqueries', require('./routes/enqueryRoutes'))
 
 mongoose.connect(uri)
   .then(() => console.log("Connected to MongoDB"))

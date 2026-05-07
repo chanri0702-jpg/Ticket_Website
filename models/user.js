@@ -16,10 +16,10 @@ const userSchema = new mongoose.Schema({
 })
 
 //---------------------------------------------------------
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next()
-  this.password = await bcrypt.hash(this.password, 10)
-  next()
+userSchema.pre('save', async function (next) {//mongodb hook before saving
+  if (!this.isModified('password')) return next() //checks if password was changed
+  this.password = await bcrypt.hash(this.password, 10) ///hash password via bycript
+  next() //save user after hashing
 })
 
 module.exports = mongoose.model('User', userSchema)
