@@ -1,3 +1,4 @@
+const { time } = require('console');
 const express = require('express');
 const mongoose = require('mongoose');
 require('dotenv').config();//allow env variable use
@@ -15,6 +16,12 @@ if (!port) {
   console.error("PORT is not defined in .env file");
   process.exit(1);
 }
+//------------------------------routes-------------------------------
+app.use('/api/users',    require('./routes/userRoutes'))
+app.use('/api/events',   require('./routes/eventRoutes'))
+app.use('/api/venues',   require('./routes/venueRoutes'))
+app.use('/api/times',    require('./routes/timesRoutes'))
+app.use('/api/bookings', require('./routes/bookingRoutes'))
 
 mongoose.connect(uri)
   .then(() => console.log("Connected to MongoDB"))
@@ -23,12 +30,10 @@ mongoose.connect(uri)
     process.exit(1);
   });
 
-//------------------------------routes-------------------------------
 //test route
 app.get('/', (req, res) => {
   res.send('Server is running!');
 });
-    
 
 //start server node.js
 app.listen(port, () => {
