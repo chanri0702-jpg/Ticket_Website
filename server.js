@@ -10,6 +10,11 @@ if (!uri) {
 }
 const app = express();
 app.use(express.json());
+app.use(express.static('public'));
+
+app.set('view engine', 'ejs');
+app.set('views', './Views');
+
 const port = process.env.PORT;
 
 if (!port) {
@@ -24,17 +29,79 @@ app.use('/api/times',    require('./routes/timesRoutes'))
 app.use('/api/bookings', require('./routes/bookingRoutes'))
 app.use('/api/enqueries', require('./routes/enqueryRoutes'))
 
+//------------------------------view routes-------------------------------
+const Event = require('./models/event');
+const Times = require('./models/times');
+
+app.get('/', async (req, res) => {
+    try {
+        let matchStage = {};
+        
+        if (req.query.search) {
+            matchStage.name = { $regex: req.query.search, $options: 'i' };
+        }
+        
+        if (req.query.category) {
+            matchStage.category = req.query.category;
+        }
+
+        const events = await Event.aggregate([
+            { $match: matchStage },
+            {
+                $lookup: {
+                    from: 'times',
+                    localField: '_id',
+                    foreignField: 'eventID',
+                    as: 'timeSlots'
+                }
+            },
+            {
+                $addFields: {
+                    totalAvailable: { $sum: '$timeSlots.seatsAvailable' },
+                    earliestDate: { $min: '$timeSlots.eventTime' }
+                }
+            },
+            {
+                $match: {
+                    ...(req.query.date ? { 
+                        earliestDate: { 
+                            $gte: new Date(req.query.date), 
+                            $lt: new Date(new Date(req.query.date).setDate(new Date(req.query.date).getDate() + 1)) 
+                        } 
+                    } : {}),
+                    ...(req.query.availability === 'available' ? { totalAvailable: { $gt: 0 } } : {}),
+                    ...(req.query.availability === 'soldout' ? { totalAvailable: { $eq: 0 } } : {})
+                }
+            },
+            {
+                $lookup: {
+                    from: 'venues',
+                    localField: 'venueID',
+                    foreignField: '_id',
+                    as: 'venue'
+                }
+            },
+            { $unwind: { path: '$venue', preserveNullAndEmptyArrays: true } }
+        ]);
+
+        res.render('index', { events, query: req.query });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Error loading events');
+    }
+});
+
+app.get('/login', (req, res) => res.render('login'));
+app.get('/contact', (req, res) => res.render('contact'));
+app.get('/event', (req, res) => res.render('event'));
+app.get('/booking', (req, res) => res.render('booking'));
+
 mongoose.connect(uri)
   .then(() => console.log("Connected to MongoDB"))
   .catch(err => {
     console.error("Could not connect to MongoDB", err);
     process.exit(1);
   });
-
-//test route
-app.get('/', (req, res) => {
-  res.send('Server is running!');
-});
 
 //start server node.js
 app.listen(port, () => {

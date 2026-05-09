@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TicketStream | Find Your Next Experience</title>
+    <link rel="stylesheet" href="/css/index.css">
+    <style>
+        .filter-form {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            background: var(--white);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 3rem;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            flex: 1;
+            min-width: 200px;
+        }
+        .filter-group label {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--light-text);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .filter-group select, .filter-group input {
+            padding: 0.75rem;
+            border: 2px solid #f1f5f9;
+            border-radius: 0.5rem;
+            outline: none;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        .filter-group select:focus, .filter-group input:focus {
+            border-color: var(--primary-color);
+        }
+        .filter-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0 2rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            align-self: flex-end;
+            font-weight: 600;
+            height: 48px;
+            transition: background 0.2s;
+        }
+        .filter-btn:hover {
+            background: var(--secondary-color);
+        }
+        .sold-out-badge {
+            background: #ef4444 !important;
+            color: white !important;
+        }
+        .event-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--light-text);
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/" class="logo">TICKETSTREAM</a>
+        <ul class="nav-links">
+            <li><a href="/">Events</a></li>
+            <li><a href="/contact">Support</a></li>
+            <li><a href="/login" class="btn-login">Login</a></li>
+        </ul>
+    </nav>
+
+    <header class="hero">
+        <h1>Find Your Next Big Event</h1>
+        <p>Explore concerts, sports, theater and more. Secure your spot today.</p>
+        <form action="/" method="GET" class="search-container">
+            <input type="text" name="search" placeholder="Search by event name..." value="<%= query.search || '' %>">
+            <button type="submit">Search</button>
+        </form>
+    </header>
+
+    <main style="max-width: 1200px; margin: 0 auto; padding: 0 5%;">
+        <div class="section-title" style="flex-direction: column; align-items: stretch; padding: 4rem 0 2rem;">
+            <h2 style="font-size: 2rem; margin-bottom: 2rem;">Filter Events</h2>
+            
+            <form action="/" method="GET" class="filter-form">
+                <% if(query.search) { %>
+                    <input type="hidden" name="search" value="<%= query.search %>">
+                <% } %>
+
+        <div class="events-grid" style="padding: 0 0 4rem;">
+            <% if (events && events.length > 0) { %>
+                <% events.forEach(function(event) { %>
+                    <div class="event-card">
+                        <img src="<%= event.image || 'https://via.placeholder.com/400x200?text=Event+Image' %>" alt="<%= event.name %>" class="event-img">
+                        <div class="event-content">
+                            <span class="event-tag <%= event.totalAvailable === 0 ? 'sold-out-badge' : '' %>">
+                                <%= event.totalAvailable === 0 ? 'SOLD OUT' : (event.category || 'Event') %>
+                            </span>
+                            <h3 class="event-title"><%= event.name %></h3>
+                            <div class="event-meta">
+                                <span>📍 <%= event.venue ? event.venue.address1 : 'TBA' %></span>
+                                <% if(event.earliestDate) { %>
+                                    <span>• 📅 <%= new Date(event.earliestDate).toLocaleDateString() %></span>
+                                <% } %>
+                            </div>
+                            <p class="event-info" style="margin-top: 1rem;">
+                                <%= event.description ? (event.description.substring(0, 80) + '...') : 'No description available.' %>
+                            </p>
+                            <div class="event-footer">
+                                <span class="price">$<%= event.price %></span>
+                                <a href="/event?id=<%= event._id %>" class="btn-book">
+                                    <%= event.totalAvailable === 0 ? 'View Details' : 'Book Tickets' %>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <div style="grid-column: 1 / -1; text-align: center; padding: 4rem; background: white; border-radius: 1rem; box-shadow: var(--shadow);">
+                    <p style="color: var(--light-text); font-size: 1.25rem;">No events match your criteria. Try adjusting your filters.</p>
+                    <a href="/" style="display: inline-block; margin-top: 1rem; color: var(--primary-color); font-weight: 600;">Clear all filters</a>
+                </div>
+            <% } %>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 TicketStream. Built for WPR381 Project.</p>
+    </footer>
+</body>
+</html>
