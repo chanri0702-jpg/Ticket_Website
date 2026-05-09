@@ -4,6 +4,7 @@ const eventSchema = new mongoose.Schema({
   name:        { type: String, required: true },
   description: { type: String },
   host:        { type: String },
+  category:    { type: String, required: true, enum: ['Concert', 'Sports', 'Theater', 'Conference', 'Other'] },
   image:       { type: String },
   price:       { type: Number, required: true },
   venueID:     { type: mongoose.Schema.Types.ObjectId, ref: 'Venue', required: true }
