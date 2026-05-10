@@ -1,6 +1,8 @@
 const { time } = require('console');
 const express = require('express');
 const mongoose = require('mongoose');
+const session = require('express-session');//for session management
+const { setUserLocals } = require('./middleware/auth');
 require('dotenv').config();//allow env variable use
 
 const uri = process.env.MONGO_URI;//use .env variable
@@ -10,7 +12,26 @@ if (!uri) {
 }
 const app = express();
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));//for parsing form data
 app.use(express.static('public'));
+
+// Session middleware (for login)
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'ticketstream-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    httpOnly: true
+  }
+}));
+
+// Middleware to make user available in all views
+app.use((req, res, next) => {
+  res.locals.user = req.session.user || null;
+  next();
+});
+
 
 app.set('view engine', 'ejs');
 app.set('views', './Views');
@@ -22,6 +43,7 @@ if (!port) {
   process.exit(1);
 }
 //------------------------------routes-------------------------------
+app.use('/auth', require('./routes/authRoutes'));
 app.use('/api/users',    require('./routes/userRoutes'))
 app.use('/api/events',   require('./routes/eventRoutes'))
 app.use('/api/venues',   require('./routes/venueRoutes'))
@@ -91,7 +113,41 @@ app.get('/', async (req, res) => {
     }
 });
 
-app.get('/login', (req, res) => res.render('login'));
+// Auth pages
+app.get('/login', (req, res) => {
+    if (req.session.user) return res.redirect('/dashboard');
+    res.render('login', { title: 'Login' });
+});
+
+app.get('/register', (req, res) => {
+    if (req.session.user) return res.redirect('/dashboard');
+    res.render('register', { title: 'Register' });
+});
+
+app.get('/dashboard', async (req, res) => {
+    if (!req.session.user) return res.redirect('/auth/login');
+    
+    // Get user's bookings
+    const Booking = require('./models/booking');
+    const bookings = await Booking.find({ userId: req.session.user.id })
+        .populate('eventId')
+        .sort({ createdAt: -1 });
+    
+    res.render('dashboard', { 
+        title: 'Dashboard', 
+        user: req.session.user,
+        bookings: bookings
+    });
+});
+
+app.get('/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) console.error(err);
+        res.redirect('/');
+    });
+});
+
+
 app.get('/contact', (req, res) => res.render('contact'));
 app.get('/event', (req, res) => res.render('event'));
 app.get('/booking', (req, res) => res.render('booking'));
