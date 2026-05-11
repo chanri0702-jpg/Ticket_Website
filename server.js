@@ -3,6 +3,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 require('dotenv').config();//allow env variable use
 
+const venueController = require('./controllers/venueController')//controller for venue page route
+
 const uri = process.env.MONGO_URI;//use .env variable
 if (!uri) {
   console.error("MONGO_URI is not defined in .env file");
@@ -21,6 +23,12 @@ if (!port) {
   console.error("PORT is not defined in .env file");
   process.exit(1);
 }
+
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`) // logs every request
+  next()
+})
+
 //------------------------------routes-------------------------------
 app.use('/api/users',    require('./routes/userRoutes'))
 app.use('/api/events',   require('./routes/eventRoutes'))
@@ -93,7 +101,8 @@ app.get('/', async (req, res) => {
 
 app.get('/login', (req, res) => res.render('login'));
 app.get('/contact', (req, res) => res.render('contact'));
-app.get('/event', (req, res) => res.render('event'));
+// Page route (renders EJS)
+app.get('/venues', venueController.getVenuesPage)
 app.get('/booking', (req, res) => res.render('booking'));
 
 mongoose.connect(uri)

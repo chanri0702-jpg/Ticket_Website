@@ -8,4 +8,5 @@ router.post('/',     eventController.createEvent)  // admin only
 router.put('/:id',   eventController.updateEvent)  // admin only
 router.delete('/:id',eventController.deleteEvent)  // admin only
 
+
 module.exports = router

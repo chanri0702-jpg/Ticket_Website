@@ -208,3 +208,66 @@ footer {
     padding: 4rem 5%;
     text-align: center;
 }
+
+.filter-form {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            background: var(--white);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 3rem;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            flex: 1;
+            min-width: 200px;
+        }
+        .filter-group label {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--light-text);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .filter-group select, .filter-group input {
+            padding: 0.75rem;
+            border: 2px solid #f1f5f9;
+            border-radius: 0.5rem;
+            outline: none;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        .filter-group select:focus, .filter-group input:focus {
+            border-color: var(--primary-color);
+        }
+        .filter-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0 2rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            align-self: flex-end;
+            font-weight: 600;
+            height: 48px;
+            transition: background 0.2s;
+        }
+        .filter-btn:hover {
+            background: var(--secondary-color);
+        }
+        .sold-out-badge {
+            background: #ef4444 !important;
+            color: white !important;
+        }
+        .event-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--light-text);
+            margin-top: 0.5rem;
+        }
