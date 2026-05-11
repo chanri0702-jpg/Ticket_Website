@@ -30,8 +30,8 @@ const getVenueById = async (req, res) => {
 
 const createVenue = async (req, res) => {
   try {
-    const { address1, address2, zip, totalSeats, seatTemplate } = req.body
-    const venue = new Venue({ address1, address2, zip, totalSeats, seatTemplate })
+    const { name, address1, address2, zip, totalSeats, seatTemplate } = req.body
+    const venue = new Venue({ name, address1, address2, zip, totalSeats, seatTemplate })
     await venue.save()
     res.status(201).json(venue)
   } catch (err) {
@@ -41,10 +41,10 @@ const createVenue = async (req, res) => {
 
 const updateVenue = async (req, res) => {
   try {
-    const { address1, address2, zip, totalSeats, seatTemplate } = req.body
+    const { name, address1, address2, zip, totalSeats, seatTemplate } = req.body
     const venue = await Venue.findByIdAndUpdate(
       req.params.id,
-      { address1, address2, zip, totalSeats, seatTemplate },
+      { name, address1, address2, zip, totalSeats, seatTemplate },
       { new: true }
     )
     if (!venue) return res.status(404).json({ message: 'Venue not found' })
