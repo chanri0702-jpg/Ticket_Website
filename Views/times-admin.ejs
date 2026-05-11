@@ -1,0 +1,201 @@
+
+<!-- Time Slot Management Page (Admin Only)
+     Allows admins to create and delete time slots per event.
+     Without time slots, the booking page dropdown will always be empty. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TicketStream | Manage Time Slots</title>
+  <link rel="stylesheet" href="/css/index.css">
+  <link rel="stylesheet" href="/css/event.css">
+  <link rel="stylesheet" href="/css/event-times.css">
+
+</head>
+<body class="admin-body">
+
+  <!-- Navbar -->
+  <nav>
+    <a href="/" class="logo">TICKETSTREAM</a>
+    <ul class="nav-links">
+      <li><a href="/booking">Dashboard</a></li>
+      <li><a href="/">Events</a></li>
+      <li><a href="/contact">Support</a></li>
+      <li class="dropdown">
+        <a href="#" class="dropdown-toggle">Event Management ▾</a>
+        <ul class="dropdown-menu">
+          <li><a href="venues">Manage Venues</a></li>
+          <li><a href="events">Manage Events</a></li>
+          <li><a href="times-admin">Manage Times</a></li>
+        </ul>
+      </li>
+      <li><a href="/login" class="btn-login">Login</a></li>
+    </ul>
+  </nav>
+
+  <div class="admin-layout">
+
+    <!-- Sidebar -->
+    <aside class="venue-sidebar" id="timesSidebar">
+      <div class="sidebar-header">
+        <h3>Show Times</h3>
+        <button class="btn-add-venue" id="addTimeBtn" onclick="resetForm()" disabled>+ Add Time</button>
+      </div>
+
+      <!-- Event selector -->
+      <div class="sidebar-event-selector">
+        <label for="sidebarEventSelect">Event</label>
+        <select id="sidebarEventSelect" onchange="onEventSelect()">
+          <option value="">— Select an event —</option>
+          <% if (events && events.length > 0) { %>
+            <% events.forEach(function(ev) { %>
+              <option value="<%= ev._id %>"><%= ev.name %></option>
+            <% }) %>
+          <% } %>
+        </select>
+      </div>
+
+      <ul class="venue-list" id="timesList">
+        <li class="venue-list-empty">Select an event to view its times</li>
+      </ul>
+    </aside>
+
+    <!-- Main content -->
+    <main class="admin-main">
+      <div class="admin-page-header">
+        <h1 id="formTitle">Add Show Time</h1>
+        <p id="formSubtitle">Select an event from the sidebar to get started</p>
+      </div>
+
+      <form id="timesForm" class="admin-form" onsubmit="submitTime(event)">
+        <input type="hidden" id="timeId" value="">
+        <input type="hidden" id="selectedEventId" value="">
+
+        <!-- Show time details -->
+        <div class="form-section">
+          <h2 class="form-section-title">Show Time Details</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="eventTime">Date & Time *</label>
+              <input type="datetime-local" id="eventTime" name="eventTime" required>
+            </div>
+            <div class="form-group">
+              <label for="totalSeats">Total Seats *</label>
+              <input type="number" id="totalSeats" name="totalSeats" placeholder="e.g. 500" min="1" required>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pricing -->
+        <div class="form-section">
+          <h2 class="form-section-title">Pricing</h2>
+          <div class="form-group" style="margin-bottom: 1.25rem;">
+            <label>Price Type</label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" name="priceType" value="uniform" checked onchange="togglePricing('uniform')">
+                Uniform Price
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="priceType" value="custom" onchange="togglePricing('custom')">
+                Custom Price per Block
+              </label>
+            </div>
+          </div>
+
+          <div id="uniformPricing">
+            <div class="form-group">
+              <label for="price">Ticket Price (R) *</label>
+              <input type="number" id="price" name="price" placeholder="e.g. 250" min="0" step="0.01">
+            </div>
+          </div>
+
+          <div id="customPricing" style="display:none;">
+            <p class="toggle-hint" style="margin-bottom:1rem;">Set a price for each block.</p>
+            <div id="blockPriceInputs" class="rows-config"></div>
+          </div>
+        </div>
+
+        <!-- Seat management -->
+        <div class="form-section">
+          <h2 class="form-section-title">Seat Management</h2>
+          <div id="seatsPanel">
+            <p class="toggle-hint">Save the time slot first, then manage seats.</p>
+          </div>
+          <div id="reserveSection" style="display:none; margin-top:1rem;">
+            <button type="button" class="btn-reserve" onclick="openReservePanel()">🪑 Reserve Seats</button>
+          </div>
+        </div>
+
+        <!-- Form actions -->
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" id="submitBtn">Add Show Time</button>
+          <button type="button" class="btn-secondary" id="clearBtn" onclick="resetForm()">Clear</button>
+          <button type="button" class="btn-danger" id="deleteBtn" style="display:none;" onclick="deleteTime()">Delete Time</button>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <div class="reserve-overlay" id="reserveOverlay" onclick="closeReservePanel(event)">
+    <div class="reserve-panel" id="reservePanel">
+      <div class="reserve-panel-header">
+        <h3>Reserve Seats</h3>
+        <button class="reserve-close" onclick="closeReservePanel()">✕</button>
+      </div>
+
+      <div id="noLayoutMode" style="display:none;">
+        <div class="reserve-section">
+          <p class="toggle-hint">This venue assigns seats at the door. Enter the number of seats to reserve.</p>
+          <div class="form-group" style="margin-top:1rem;">
+            <label>Seats to Reserve</label>
+            <input type="number" id="noLayoutReserveCount" placeholder="e.g. 10" min="1">
+          </div>
+        </div>
+      </div>
+
+      <div id="layoutMode" style="display:none;">
+        <div class="reserve-section">
+          <div class="reserve-block-selector">
+            <label>Block</label>
+            <select id="blockSelect" onchange="renderBlockSeats()">
+              <option value="">— Select block —</option>
+            </select>
+          </div>
+
+          <div id="seatGrid" class="seat-grid"></div>
+        </div>
+
+        <div class="reserve-section" id="reservedListSection" style="display:none;">
+          <h4 class="reserve-section-title">Reserved Seats</h4>
+          <div id="reservedList" class="reserved-list"></div>
+        </div>
+      </div>
+
+      <div class="reserve-panel-footer">
+        <button class="btn-primary" onclick="saveReservedSeats()">Save Reserved Seats</button>
+        <button class="btn-secondary" onclick="closeReservePanel()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="confirmModal" style="display:none;">
+    <div class="modal">
+      <h3>Delete Show Time</h3>
+      <p>Are you sure you want to delete this show time? This cannot be undone.</p>
+      <div class="modal-actions">
+        <button class="btn-danger" onclick="confirmDelete()">Yes, Delete</button>
+        <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const allEvents  = <%- JSON.stringify(events  || []) %>;
+    const allVenues  = <%- JSON.stringify(venues  || []) %>;
+    const allTimes   = <%- JSON.stringify(times   || []) %>;
+  </script>
+  <script src="/js/times.js"></script>
+</body>
+</html>

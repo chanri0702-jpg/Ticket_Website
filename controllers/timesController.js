@@ -7,7 +7,7 @@ const getTimesPage = async (req, res) => {
     const events = await Event.find().populate('venueID')
     const venues = await Venue.find()
     const times  = await Times.find().lean()
-    res.render('times', { events, venues, times })
+    res.render('times-admin', { events, venues, times })
   } catch (err) {
     res.status(500).send('Error loading times page')
   }

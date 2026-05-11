@@ -5,7 +5,7 @@ const getEventsPage = async (req, res) => {
   try {
     const events = await Event.find().populate('venueID')
     const venues = await Venue.find()
-    res.render('event', { events, venues })
+    res.render('events', { events, venues })
   } catch (err) {
     res.status(500).send('Error loading events page')
   }
