@@ -4,6 +4,7 @@ require('dotenv').config();//allow env variable use
 
 const venueController = require('./controllers/venueController')//controller for venue page route
 const eventController = require('./controllers/eventController')
+const timesController = require('./controllers/timesController')
 
 const uri = process.env.MONGO_URI;//use .env variable
 if (!uri) {
@@ -131,7 +132,9 @@ app.get('/event', async (req, res) => {
 app.get('/login',   (req, res) => res.render('login'));
 app.get('/contact', (req, res) => res.render('contact'));
 app.get('/events', eventController.getEventsPage)
+app.get('/times', timesController.getTimesPage)
 app.get('/booking', (req, res) => res.render('booking'));
+<<<<<<< Updated upstream
 
 // Times management page – fetch all events for dropdown
 app.get('/times', async (req, res) => {
@@ -144,6 +147,8 @@ app.get('/times', async (req, res) => {
   }
 });
 // Admin – venue management
+=======
+>>>>>>> Stashed changes
 app.get('/venues', venueController.getVenuesPage);
 
 // ─── database start ────────────────────────────────────────────────────────
