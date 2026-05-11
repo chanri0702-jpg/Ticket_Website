@@ -6,11 +6,195 @@ usage) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Booking</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Booking & Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/booking.css" />
 </head>
 <body>
-    
+
+<!-- ═══════════════════════ HEADER ═══════════════════════════════════════ -->
+    <nav>
+        <a href="/" class="logo">TICKETSTREAM</a>
+        <ul class="nav-links">
+            <li><a href="/booking">Dashboard</a></li>
+            <li><a href="/">Events</a></li>
+            <li><a href="/contact">Support</a></li>
+            <li><a href="/login" class="btn-login">Login</a></li>
+        </ul>
+    </nav>
+
+<!-- ═══════════════════════ TABS ═════════════════════════════════════════ -->
+<div class="tab-bar">
+  <button class="tab active" onclick="switchTab('book')">Book Tickets</button>
+  <button class="tab" onclick="switchTab('history')">My Bookings</button>
+  <button class="tab" onclick="switchTab('admin')">Admin Dashboard</button>
+</div>
+
+<!-- ═══════════════════════ TOAST ════════════════════════════════════════ -->
+<div id="toast"></div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     TAB 1 — BOOK TICKETS
+════════════════════════════════════════════════════════════════════════ -->
+<div id="tab-book" class="page active">
+  <h1 class="page-title">Book Tickets</h1>
+  <p class="page-subtitle">Select an event, choose your time slot, then pick your seats.</p>
+
+  <div class="grid-2">
+    <!-- LEFT: event + time selection -->
+    <div class="card" id="booking-form-card">
+      <h2 class="card-title">Event Details</h2>
+      <div class="form-group">
+        <label>Your Email</label>
+        <input type="email" id="book-email" placeholder="you@example.com" />
+      </div>
+      <div class="form-group">
+        <label>Select Event</label>
+        <select id="book-event" onchange="onEventChange()">
+          <option value="">— choose an event —</option>
+        </select>
+      </div>
+      <div id="event-info" style="display:none" class="info-row">
+        <div class="info-item"><div class="il">Host</div><div id="ev-host">—</div></div>
+        <div class="info-item"><div class="il">Price / Seat</div><div id="ev-price">—</div></div>
+      </div>
+      <div class="form-group">
+        <label>Select Time Slot</label>
+        <select id="book-time" onchange="onTimeChange()">
+          <option value="">— choose a time —</option>
+        </select>
+      </div>
+      <div id="time-info" style="display:none" class="info-row">
+        <div class="info-item"><div class="il">Seats Available</div><div id="ti-avail">—</div></div>
+        <div class="info-item"><div class="il">Total Seats</div><div id="ti-total">—</div></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: order summary + confirm -->
+    <div class="card">
+      <h2 class="card-title">Order Summary</h2>
+      <div id="summary-placeholder" class="empty-state" style="padding:2rem">
+        <p>Select seats from the seat map below to see your order summary.</p>
+      </div>
+      <div id="order-summary" style="display:none">
+        <div id="selected-seats-display"></div>
+        <hr class="divider" />
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <span style="color:var(--muted)">Total</span>
+          <span style="font-family:var(--ff-head);font-size:2rem;color:var(--accent)" id="order-total">R0.00</span>
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="confirmBooking()" id="confirm-btn">
+          Confirm Booking
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEAT MAP -->
+  <div class="card" style="margin-top:1.5rem" id="seat-map-card">
+    <h2 class="card-title">Seat Map</h2>
+    <div id="seat-map-inner">
+      <div class="empty-state">
+        <p>Select an event and time slot to view the seat map.</p>
+      </div>
+    </div>
+    <div class="seat-legend">
+      <div class="legend-item"><div class="legend-dot avail"></div> Available</div>
+      <div class="legend-item"><div class="legend-dot sel"></div> Selected</div>
+      <div class="legend-item"><div class="legend-dot taken"></div> Taken</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     TAB 2 — MY BOOKINGS
+════════════════════════════════════════════════════════════════════════ -->
+<div id="tab-history" class="page">
+  <h1 class="page-title">My Bookings</h1>
+  <p class="page-subtitle">View and manage your ticket bookings.</p>
+
+  <div class="card" style="margin-bottom:1.5rem">
+    <div style="display:flex;gap:1rem;align-items:flex-end">
+      <div class="form-group" style="margin:0;flex:1">
+        <label>Email Address</label>
+        <input type="email" id="history-email" placeholder="you@example.com" />
+      </div>
+      <button class="btn btn-primary" onclick="loadHistory()">Load Bookings</button>
+    </div>
+  </div>
+
+  <div id="history-list">
+    <div class="empty-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+      </svg>
+      <p>Enter your email above to view your bookings.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     TAB 3 — ADMIN DASHBOARD
+════════════════════════════════════════════════════════════════════════ -->
+<div id="tab-admin" class="page">
+  <h1 class="page-title">Admin Dashboard</h1>
+  <p class="page-subtitle">Analytics, capacity usage, and booking insights.</p>
+
+  <button class="btn btn-outline" style="margin-bottom:1.5rem" onclick="loadAnalytics()">
+    ↻ Refresh Data
+  </button>
+
+  <!-- Stat cards -->
+  <div class="grid-3" id="stat-cards" style="margin-bottom:1.5rem">
+    <div class="stat-card red">
+      <div class="stat-label">Total Bookings</div>
+      <div class="stat-value" id="stat-bookings">—</div>
+      <div class="stat-sub">All time</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">Tickets Sold</div>
+      <div class="stat-value" id="stat-tickets">—</div>
+      <div class="stat-sub">Individual seats</div>
+    </div>
+    <div class="stat-card gold">
+      <div class="stat-label">Total Revenue</div>
+      <div class="stat-value" id="stat-revenue">—</div>
+      <div class="stat-sub">Gross earnings</div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:1.5rem">
+    <!-- Popular events -->
+    <div class="card">
+      <h2 class="card-title">Popular Events</h2>
+      <div id="popular-events-list">
+        <div class="loader"></div>
+      </div>
+    </div>
+
+    <!-- Bookings over time -->
+    <div class="card">
+      <h2 class="card-title">Bookings — Last 30 Days</h2>
+      <div id="chart-container">
+        <div class="loader"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Capacity usage -->
+  <div class="card">
+    <h2 class="card-title">Capacity Usage by Time Slot</h2>
+    <div id="capacity-list">
+      <div class="loader"></div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/booking.js"></script>
+
 </body>
 </html>
