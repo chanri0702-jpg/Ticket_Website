@@ -1,0 +1,301 @@
+<!-- Time Slot Management Page (Admin Only)
+     Allows admins to create and delete time slots per event.
+     Without time slots, the booking page dropdown will always be empty. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TicketStream | Manage Time Slots</title>
+  <link rel="stylesheet" href="/css/times.css">
+  <link rel="stylesheet" href="/css/index.css">
+  <link rel="stylesheet" href="/css/event.css">
+
+</head>
+<body class="admin-body">
+
+  <!-- Navbar -->
+  <nav>
+    <a href="/" class="logo">TICKETSTREAM</a>
+    <ul class="nav-links">
+      <li><a href="/">Events</a></li>
+      <li><a href="/contact">Support</a></li>
+      <li class="dropdown">
+        <a href="#" class="dropdown-toggle">Event Management ▾</a>
+        <ul class="dropdown-menu">
+          <li><a href="/venues">Manage Venues</a></li>
+          <li><a href="/events">Manage Events</a></li>
+          <li><a href="/times">Manage Times</a></li>
+        </ul>
+      </li>
+      <li><a href="/login" class="btn-login">Login</a></li>
+    </ul>
+  </nav>
+
+  <div id="toast"></div>
+
+  <div class="times-layout">
+    <div class="times-page-header">
+      <h1>Manage Time Slots</h1>
+      <p>Add date/time slots to events so users can book tickets. Without time slots the booking dropdown will be empty.</p>
+    </div>
+
+    <!-- Add a slot -->
+    <div class="add-slot-card">
+      <h2>Add New Time Slot</h2>
+      <div class="slot-form-grid">
+        <div class="form-group">
+          <label>Event *</label>
+          <select id="sel-event">
+            <option value="">— choose an event —</option>
+            <% if (events && events.length) { %>
+              <% events.forEach(e => { %>
+                <option value="<%= e._id %>"><%= e.name %></option>
+              <% }) %>
+            <% } %>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Date & Time *</label>
+          <input type="datetime-local" id="inp-time">
+        </div>
+        <button class="btn-add-slot" id="btn-add" onclick="addSlot()">+ Add Slot</button>
+      </div>
+    </div>
+
+    <!-- Existing slots -->
+    <div class="slots-card">
+      <h2>All Time Slots</h2>
+      <div id="slots-container">
+        <div class="empty-slots">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm delete modal -->
+  <div class="modal-overlay" id="confirmModal" style="display:none;">
+    <div class="modal">
+      <h3>Delete Time Slot</h3>
+      <p>This will permanently delete the time slot and release all associated bookings data. This cannot be undone.</p>
+      <div class="modal-actions">
+        <button class="btn-danger-sm" onclick="confirmDelete()">Delete</button>
+        <button class="btn-secondary-sm" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api'
+    let allSlots = []
+    let slotToDelete = null
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+    const $ = id => document.getElementById(id)
+    const fmtDate = d => new Date(d).toLocaleString('en-ZA', { dateStyle: 'medium', timeStyle: 'short' })
+
+    function toast(msg, type = 'success') {
+      const t = $('toast')
+      t.textContent = msg
+      t.className = `show ${type}`
+      clearTimeout(window._tt)
+      window._tt = setTimeout(() => { t.className = '' }, 3500)
+    }
+
+    // ── Load all slots ──────────────────────────────────────────────────────
+    async function loadAllSlots() {
+      const eventId = $('sel-event').value
+      const container = $('slots-container')
+      container.innerHTML = '<div class="empty-slots">Loading…</div>'
+
+      try {
+        // Fetch all events first to resolve names
+        const [evRes, slotRes] = await Promise.all([
+          fetch(`${API}/events`),
+          eventId ? fetch(`${API}/times/event/${eventId}`) : fetchAllSlots()
+        ])
+        const events = await evRes.json()
+        const slots  = await slotRes.json()
+
+        allSlots = slots
+
+        if (!slots.length) {
+          container.innerHTML = '<div class="empty-slots">No time slots found. Add one above.</div>'
+          return
+        }
+
+        // Build event name lookup
+        const eventMap = {}
+        events.forEach(e => { eventMap[e._id] = e.name })
+
+        container.innerHTML = `
+          <table class="slot-table">
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>Date & Time</th>
+                <th>Seats Available</th>
+                <th>Total Seats</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="slots-body"></tbody>
+          </table>`
+
+        const tbody = $('slots-body')
+        slots.forEach(s => {
+          const available = s.seatsAvailable > 0
+          const tr = document.createElement('tr')
+          tr.innerHTML = `
+            <td style="font-weight:500">${eventMap[s.eventID] || '—'}</td>
+            <td>${fmtDate(s.eventTime)}</td>
+            <td>${s.seatsAvailable}</td>
+            <td>${s.totalSeats}</td>
+            <td><span class="badge-avail ${available ? '' : 'badge-sold'}">${available ? 'Available' : 'Sold Out'}</span></td>
+            <td><button class="btn-delete-slot" onclick="deleteSlot('${s._id}')">Delete</button></td>`
+          tbody.appendChild(tr)
+        })
+      } catch (err) {
+        container.innerHTML = '<div class="empty-slots">Failed to load time slots.</div>'
+        toast('Failed to load time slots', 'error')
+      }
+    }
+
+    // Fetch ALL time slots by querying each event
+    async function fetchAllSlots() {
+      const res    = await fetch(`${API}/events`)
+      const events = await res.json()
+      const results = await Promise.all(
+        events.map(e => fetch(`${API}/times/event/${e._id}`).then(r => r.json()))
+      )
+      // Flatten and return a fake Response-like object
+      const flat = results.flat()
+      return { json: () => Promise.resolve(flat), _flat: flat }
+    }
+
+    // Intercept: if fetchAllSlots is used, slotRes.json() is called on result
+    // So we need a wrapper. Let's simplify:
+    async function loadSlots() {
+      const container = $('slots-container')
+      container.innerHTML = '<div class="empty-slots">Loading…</div>'
+      try {
+        const evRes    = await fetch(`${API}/events`)
+        const events   = await evRes.json()
+        const eventMap = {}
+        events.forEach(e => { eventMap[e._id] = e.name })
+
+        // Fetch slots for all events in parallel
+        const allResults = await Promise.all(
+          events.map(e =>
+            fetch(`${API}/times/event/${e._id}`)
+              .then(r => r.json())
+              .catch(() => [])
+          )
+        )
+        const slots = allResults.flat()
+        allSlots = slots
+
+        if (!slots.length) {
+          container.innerHTML = '<div class="empty-slots">No time slots found. Add one above.</div>'
+          return
+        }
+
+        container.innerHTML = `
+          <table class="slot-table">
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>Date & Time</th>
+                <th>Seats Available</th>
+                <th>Total Seats</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="slots-body"></tbody>
+          </table>`
+
+        const tbody = $('slots-body')
+        slots.sort((a, b) => new Date(a.eventTime) - new Date(b.eventTime))
+        slots.forEach(s => {
+          const avail = s.seatsAvailable > 0
+          const tr = document.createElement('tr')
+          tr.innerHTML = `
+            <td style="font-weight:500">${eventMap[s.eventID] || '—'}</td>
+            <td>${fmtDate(s.eventTime)}</td>
+            <td>${s.seatsAvailable}</td>
+            <td>${s.totalSeats}</td>
+            <td><span class="badge-avail ${avail ? '' : 'badge-sold'}">${avail ? 'Available' : 'Sold Out'}</span></td>
+            <td><button class="btn-delete-slot" onclick="promptDelete('${s._id}')">Delete</button></td>`
+          tbody.appendChild(tr)
+        })
+      } catch (err) {
+        container.innerHTML = '<div class="empty-slots">Failed to load time slots.</div>'
+        toast('Failed to load time slots', 'error')
+      }
+    }
+
+    // ── Add slot ────────────────────────────────────────────────────────────
+    async function addSlot() {
+      const eventID   = $('sel-event').value
+      const eventTime = $('inp-time').value
+
+      if (!eventID)   return toast('Please select an event', 'error')
+      if (!eventTime) return toast('Please pick a date and time', 'error')
+
+      const btn = $('btn-add')
+      btn.disabled = true
+      btn.textContent = 'Adding…'
+
+      try {
+        const res  = await fetch(`${API}/times`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventID, eventTime: new Date(eventTime).toISOString() })
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.message)
+        toast('Time slot added successfully!', 'success')
+        $('inp-time').value = ''
+        $('sel-event').value = ''
+        loadSlots()
+      } catch (err) {
+        toast(err.message || 'Failed to add slot', 'error')
+      } finally {
+        btn.disabled = false
+        btn.textContent = '+ Add Slot'
+      }
+    }
+
+    // ── Delete slot ─────────────────────────────────────────────────────────
+    function promptDelete(id) {
+      slotToDelete = id
+      $('confirmModal').style.display = 'flex'
+    }
+
+    async function confirmDelete() {
+      if (!slotToDelete) return
+      try {
+        const res = await fetch(`${API}/times/${slotToDelete}`, { method: 'DELETE' })
+        if (!res.ok) {
+          const d = await res.json()
+          throw new Error(d.message)
+        }
+        toast('Time slot deleted', 'success')
+        closeModal()
+        loadSlots()
+      } catch (err) {
+        toast(err.message || 'Delete failed', 'error')
+      }
+    }
+
+    function closeModal() {
+      $('confirmModal').style.display = 'none'
+      slotToDelete = null
+    }
+
+    // ── Init ────────────────────────────────────────────────────────────────
+    loadSlots()
+  </script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+ .times-layout {
+      max-width: 900px;
+      margin: 2.5rem auto;
+      padding: 0 2rem;
+    }
+    .times-page-header { margin-bottom: 2rem; }
+    .times-page-header h1 { font-size: 1.75rem; font-weight: 700; color: #1e293b; margin: 0 0 .25rem; }
+    .times-page-header p  { color: #64748b; font-size: .9rem; margin: 0; }
+
+    /* Add form */
+    .add-slot-card {
+      background: #fff;
+      border-radius: .75rem;
+      padding: 1.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+      margin-bottom: 2rem;
+    }
+    .add-slot-card h2 {
+      font-size: 1rem; font-weight: 700; color: #1e293b;
+      margin: 0 0 1.25rem; padding-bottom: .75rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .slot-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 1rem;
+      align-items: flex-end;
+    }
+    @media (max-width: 640px) { .slot-form-grid { grid-template-columns: 1fr; } }
+
+    .form-group { display: flex; flex-direction: column; gap: .375rem; }
+    .form-group label {
+      font-size: .8rem; font-weight: 700; color: #475569;
+      text-transform: uppercase; letter-spacing: .04em;
+    }
+    .form-group select,
+    .form-group input[type="datetime-local"] {
+      padding: .625rem .875rem;
+      border: 1.5px solid #e2e8f0;
+      border-radius: .5rem;
+      font-size: .9rem;
+      color: #1e293b;
+      background: #fff;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .form-group select:focus,
+    .form-group input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,.1);
+    }
+    .btn-add-slot {
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      padding: .65rem 1.5rem;
+      border-radius: .5rem;
+      font-size: .9rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .2s;
+      height: 42px;
+    }
+    .btn-add-slot:hover { background: #4f46e5; }
+    .btn-add-slot:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+    /* Slots list */
+    .slots-card {
+      background: #fff;
+      border-radius: .75rem;
+      padding: 1.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    .slots-card h2 {
+      font-size: 1rem; font-weight: 700; color: #1e293b;
+      margin: 0 0 1.25rem; padding-bottom: .75rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .slot-table { width: 100%; border-collapse: collapse; }
+    .slot-table th {
+      text-align: left;
+      font-size: .75rem; text-transform: uppercase;
+      letter-spacing: .06em; color: #94a3b8; font-weight: 600;
+      padding: .5rem .75rem;
+      border-bottom: 2px solid #f1f5f9;
+    }
+    .slot-table td {
+      padding: .85rem .75rem;
+      border-bottom: 1px solid #f8fafc;
+      font-size: .9rem;
+      color: #1e293b;
+    }
+    .slot-table tr:last-child td { border-bottom: none; }
+    .slot-table tr:hover td { background: #f8fafc; }
+    .badge-avail {
+      display: inline-block;
+      padding: .15rem .55rem;
+      border-radius: 2px;
+      font-size: .72rem; font-weight: 600; letter-spacing: .04em;
+      text-transform: uppercase;
+      background: #dcfce7; color: #15803d;
+    }
+    .badge-sold {
+      background: #fee2e2; color: #b91c1c;
+    }
+    .btn-delete-slot {
+      background: none; border: none;
+      color: #ef4444; font-size: .8rem; font-weight: 600;
+      cursor: pointer; padding: .25rem .5rem;
+      border-radius: .25rem; transition: background .15s;
+    }
+    .btn-delete-slot:hover { background: #fee2e2; }
+
+    .empty-slots {
+      text-align: center; padding: 3rem 1rem;
+      color: #94a3b8; font-size: .9rem;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 2rem; right: 2rem;
+      background: #1e293b; color: #fff;
+      padding: .9rem 1.4rem; border-radius: .5rem;
+      font-size: .9rem; border-left: 4px solid #6366f1;
+      box-shadow: 0 8px 32px rgba(0,0,0,.2);
+      transform: translateY(120%);
+      transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+      z-index: 999;
+    }
+    #toast.show { transform: translateY(0); }
+    #toast.success { border-left-color: #16a34a; }
+    #toast.error   { border-left-color: #ef4444; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .modal {
+      background: #fff; border-radius: .75rem; padding: 2rem;
+      max-width: 380px; width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+    }
+    .modal h3 { font-size: 1.1rem; font-weight: 700; color: #1e293b; margin: 0 0 .5rem; }
+    .modal p  { color: #64748b; font-size: .9rem; margin: 0 0 1.5rem; }
+    .modal-actions { display: flex; gap: .75rem; justify-content: flex-end; }
+    .btn-danger-sm {
+      background: #ef4444; color: #fff; border: none;
+      padding: .6rem 1.25rem; border-radius: .5rem;
+      font-size: .875rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-secondary-sm {
+      background: #f1f5f9; color: #475569; border: none;
+      padding: .6rem 1.25rem; border-radius: .5rem;
+      font-size: .875rem; font-weight: 600; cursor: pointer;
+    }

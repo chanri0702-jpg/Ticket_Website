@@ -131,6 +131,16 @@ app.get('/login',   (req, res) => res.render('login'));
 app.get('/contact', (req, res) => res.render('contact'));
 app.get('/booking', (req, res) => res.render('booking'));
 
+// Times management page – fetch all events for dropdown
+app.get('/times', async (req, res) => {
+  try {
+    const events = await Event.find().lean();
+    res.render('times', { events });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error loading times page');
+  }
+});
 // Admin – venue management
 app.get('/venues', venueController.getVenuesPage);
 
