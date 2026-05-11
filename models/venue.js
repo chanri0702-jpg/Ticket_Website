@@ -12,6 +12,7 @@ const venueSchema = new mongoose.Schema({
   zip:          { type: String, required: true },
   totalSeats:   { type: Number, required: true },
   layoutImage:  { type: String },
+  name:        { type: String, required: true },
   seatTemplate: [seatTemplateSchema]
 })
 

@@ -1,9 +1,21 @@
 const Event = require('../models/event')
+const Venue = require('../models/venue')
+
+const getEventsPage = async (req, res) => {
+  try {
+    const events = await Event.find().populate('venueID')
+    const venues = await Venue.find()
+    res.render('event', { events, venues })
+  } catch (err) {
+    res.status(500).send('Error loading events page')
+  }
+}
 
 // GET /api/events - get all events
 const getAllEvents = async (req, res) => {
   try {
     const events = await Event.find().populate('venueID')
+    console.log('Events found:', events.length) // check terminal
     res.json(events)
   } catch (err) {
     res.status(500).json({ message: 'Failed to get events', error: err.message })
@@ -24,8 +36,8 @@ const getEventById = async (req, res) => {
 // POST /api/events - create event (admin only)
 const createEvent = async (req, res) => {
   try {
-    const { name, description, host, image, price, venueID } = req.body
-    const event = new Event({ name, description, host, image, price, venueID })
+    const { name, description, host, category, venueID, image, price, blockPrices, priceType } = req.body
+    const event = new Event({ name, description, host, category, venueID, image, price, blockPrices, priceType })
     await event.save()
     res.status(201).json(event)
   } catch (err) {
@@ -59,4 +71,4 @@ const deleteEvent = async (req, res) => {
   }
 }
 
-module.exports = { getAllEvents, getEventById, createEvent, updateEvent, deleteEvent }
+module.exports = { getEventsPage, getAllEvents, getEventById, createEvent, updateEvent, deleteEvent }
