@@ -1,7 +1,18 @@
 const Event = require('../models/event')
 const Times = require('../models/times')
+const Venue = require('../models/venue')
 
-// GET /api/times/event/:eventID - get all time slots for an event
+const getTimesPage = async (req, res) => {
+  try {
+    const events = await Event.find().populate('venueID')
+    const venues = await Venue.find()
+    const times  = await Times.find().lean()
+    res.render('times', { events, venues, times })
+  } catch (err) {
+    res.status(500).send('Error loading times page')
+  }
+}
+
 const getTimesByEvent = async (req, res) => {
   try {
     const times = await Times.find({ eventID: req.params.eventID })
@@ -12,7 +23,7 @@ const getTimesByEvent = async (req, res) => {
   }
 }
 
-// GET /api/times/:id - get single time slot with seat availability
+// get single time slot with seat availability
 const getTimeSlotById = async (req, res) => {
   try {
     const timeSlot = await Times.findById(req.params.id).populate('eventID')
@@ -23,7 +34,7 @@ const getTimeSlotById = async (req, res) => {
   }
 }
 
-// GET /api/times/:id/blocks - get seat availability grouped by block
+// get seat availability grouped by block
 const getBlockAvailability = async (req, res) => {
   try {
     const timeSlot = await Times.findById(req.params.id)
@@ -47,33 +58,37 @@ const getBlockAvailability = async (req, res) => {
   }
 }
 
-// POST /api/times - create time slot (admin only)
+//  create time slot (admin only)
 const createTimeSlot = async (req, res) => {
   try {
-    const { eventID, eventTime } = req.body
-
+    const { eventID, eventTime, totalSeats, seatsAvailable, price, priceType, blockPrices } = req.body
+ 
     const event = await Event.findById(eventID).populate('venueID')
     if (!event) return res.status(404).json({ message: 'Event not found' })
-
+ 
     const venue = event.venueID
-
-    const seats = venue.seatTemplate.map(seat => ({
-      row:         seat.row,
-      seatNumber:  seat.seatNumber,
-      block:       seat.block,
-      isAvailable: true,
-      heldUntil:   null,
-      heldBy:      null
-    }))
-
+    const seats = venue && venue.seatTemplate && venue.seatTemplate.length > 0
+      ? venue.seatTemplate.map(seat => ({
+          row:         seat.row,
+          seatNumber:  seat.seatNumber,
+          block:       seat.block,
+          isAvailable: true,
+          heldUntil:   null,
+          heldBy:      null
+        }))
+      : []
+ 
     const timeSlot = new Times({
       eventID,
       eventTime,
-      totalSeats:     venue.totalSeats,
-      seatsAvailable: venue.totalSeats,
+      totalSeats:     totalSeats || (venue ? venue.totalSeats : 0),
+      seatsAvailable: seatsAvailable || totalSeats || (venue ? venue.totalSeats : 0),
+      price:          price || 0,
+      priceType:      priceType || 'uniform',
+      blockPrices:    blockPrices || null,
       seats
     })
-
+ 
     await timeSlot.save()
     res.status(201).json(timeSlot)
   } catch (err) {
@@ -81,7 +96,18 @@ const createTimeSlot = async (req, res) => {
   }
 }
 
-// DELETE /api/times/:id - delete time slot (admin only)
+// update time slot
+const updateTimeSlot = async (req, res) => {
+  try {
+    const timeSlot = await Times.findByIdAndUpdate(req.params.id, req.body, { new: true })
+    if (!timeSlot) return res.status(404).json({ message: 'Time slot not found' })
+    res.json(timeSlot)
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to update time slot', error: err.message })
+  }
+}
+
+//delete time slot (admin only)
 const deleteTimeSlot = async (req, res) => {
   try {
     const timeSlot = await Times.findByIdAndDelete(req.params.id)
@@ -92,4 +118,44 @@ const deleteTimeSlot = async (req, res) => {
   }
 }
 
-module.exports = { getTimesByEvent, getTimeSlotById, getBlockAvailability, createTimeSlot, deleteTimeSlot }
+// reserve seats (admin)
+const reserveSeats = async (req, res) => {
+  try {
+    const { seatIds, count } = req.body
+    const timeSlot = await Times.findById(req.params.id)
+    if (!timeSlot) return res.status(404).json({ message: 'Time slot not found' })
+ 
+    if (seatIds && seatIds.length > 0) {
+      // layout mode — mark specific seats as reserved
+      timeSlot.seats = timeSlot.seats.map(seat => {
+        if (seatIds.includes(seat._id.toString())) {
+          return { ...seat.toObject(), isAvailable: false, heldBy: '__reserved__' }
+        }
+        return seat
+      })
+      timeSlot.seatsAvailable = Math.max(0, timeSlot.seatsAvailable - seatIds.length)
+    } else if (count) {
+      // no layout mode — just decrement count
+      if (count > timeSlot.seatsAvailable) {
+        return res.status(400).json({ message: 'Not enough seats available' })
+      }
+      timeSlot.seatsAvailable = timeSlot.seatsAvailable - count
+    }
+ 
+    await timeSlot.save()
+    res.json({ message: 'Seats reserved successfully', timeSlot })
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to reserve seats', error: err.message })
+  }
+}
+ 
+module.exports = {
+  getTimesPage,
+  getTimesByEvent,
+  getTimeSlotById,
+  getBlockAvailability,
+  createTimeSlot,
+  updateTimeSlot,
+  deleteTimeSlot,
+  reserveSeats
+}

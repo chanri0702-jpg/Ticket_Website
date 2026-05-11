@@ -14,6 +14,9 @@ const timesSchema = new mongoose.Schema({
   eventTime:      { type: Date, required: true },
   seatsAvailable: { type: Number, required: true },
   totalSeats:     { type: Number, required: true },
+  price:          { type: Number, default: 0 },
+  priceType:      { type: String, enum: ['uniform', 'custom'], default: 'uniform' },
+  blockPrices:    { type: Map, of: Number, default: null },
   seats:          [seatSchema]
 })
 
