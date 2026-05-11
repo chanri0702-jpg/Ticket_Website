@@ -21,7 +21,7 @@
         <ul class="dropdown-menu">
           <li><a href="venues">Manage Venues</a></li>
           <li><a href="events">Manage Events</a></li>
-          <li><a href="times">Manage Times</a></li>
+          <li><a href="times-admin">Manage Times</a></li>
         </ul>
       </li>
       <li><a href="/login" class="btn-login">Login</a></li>
@@ -83,10 +83,8 @@
                                 <%= event.description ? (event.description.substring(0, 80) + '...') : 'No description available.' %>
                             </p>
                             <div class="event-footer">
-                                <span class="price">$<%= event.price %></span>
-                                <a href="/event?id=<%= event._id %>" class="btn-book">
-                                    <%= event.totalAvailable === 0 ? 'View Details' : 'Book Tickets' %>
-                                </a>
+                                <span class="price">R<%= event.price %></span>
+                                <a href="/view-event?id=<%= event._id %>" class="btn-book">View Details</a>
                             </div>
                         </div>
                     </div>

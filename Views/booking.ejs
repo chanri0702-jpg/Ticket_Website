@@ -29,7 +29,7 @@ usage) -->
         <ul class="dropdown-menu">
           <li><a href="venues">Manage Venues</a></li>
           <li><a href="events">Manage Events</a></li>
-          <li><a href="times">Manage Times</a></li>
+          <li><a href="times-admin">Manage Times</a></li>
         </ul>
       </li>
       <li><a href="/login" class="btn-login">Login</a></li>
@@ -106,6 +106,12 @@ usage) -->
   <!-- SEAT MAP -->
   <div class="card" style="margin-top:1.5rem" id="seat-map-card">
     <h2 class="card-title">Seat Map</h2>
+    <div id="block-selector" style="display:none; margin-bottom:1.25rem;">
+      <label style="font-size:.875rem;font-weight:600;display:block;margin-bottom:.5rem;">Select Block</label>
+      <select id="book-block" onchange="onBlockChange()" style="padding:.5rem .75rem;border:1.5px solid #e2e8f0;border-radius:.375rem;font-size:.875rem;outline:none;min-width:200px;">
+        <option value="">— choose a block —</option>
+      </select>
+    </div>
     <div id="seat-map-inner">
       <div class="empty-state">
         <p>Select an event and time slot to view the seat map.</p>

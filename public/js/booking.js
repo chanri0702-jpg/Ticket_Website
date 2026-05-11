@@ -80,6 +80,11 @@ async function onTimeChange() {
   selectedSeats = []
   updateOrderSummary()
 
+  const blockSel = $('book-block')
+  blockSel.innerHTML = '<option value="">— choose a block —</option>'
+  $('block-selector').style.display = 'none'
+  $('seat-map-inner').innerHTML = '<div class="empty-state"><p>Select an event and time slot to view the seat map.</p></div>'
+
   if (!timeId) { $('time-info').style.display = 'none'; return }
 
   try {
@@ -88,17 +93,41 @@ async function onTimeChange() {
     $('ti-avail').textContent = currentTimeSlot.seatsAvailable
     $('ti-total').textContent = currentTimeSlot.totalSeats
     $('time-info').style.display = 'flex'
-    renderSeatMap(currentTimeSlot.seats)
+
+    if (currentTimeSlot.seats && currentTimeSlot.seats.length > 0) {
+      // Populate block dropdown
+      const blocks = [...new Set(currentTimeSlot.seats.map(s => s.block))].sort()
+      blocks.forEach(b => {
+        const o = document.createElement('option')
+        o.value = b
+        const avail = currentTimeSlot.seats.filter(s => s.block === b && s.isAvailable).length
+        const total = currentTimeSlot.seats.filter(s => s.block === b).length
+        o.textContent = `${b} — ${avail}/${total} available`
+        blockSel.appendChild(o)
+      })
+      $('block-selector').style.display = 'block'
+      $('seat-map-inner').innerHTML = '<div class="empty-state"><p>Select a block above to view its seats.</p></div>'
+    } else {
+      renderSeatMap(currentTimeSlot.seats || [])
+    }
   } catch { toast('Could not load seat map', 'error') }
 }
 
+function onBlockChange() {
+  const block = $('book-block').value
+  if (!block || !currentTimeSlot) {
+    $('seat-map-inner').innerHTML = '<div class="empty-state"><p>Select a block above to view its seats.</p></div>'
+    return
+  }
+  renderSeatMap(currentTimeSlot.seats.filter(s => s.block === block))
+}
+
 function renderSeatMap(seats) {
-  // Group by block, then by row
-  const blocks = {}
+  // Group by row only (block is already filtered)
+  const rows = {}
   seats.forEach(s => {
-    if (!blocks[s.block]) blocks[s.block] = {}
-    if (!blocks[s.block][s.row]) blocks[s.block][s.row] = []
-    blocks[s.block][s.row].push(s)
+    if (!rows[s.row]) rows[s.row] = []
+    rows[s.row].push(s)
   })
 
   const container = $('seat-map-inner')
@@ -106,12 +135,13 @@ function renderSeatMap(seats) {
 
   const now = new Date()
 
-  Object.entries(blocks).forEach(([block, rows]) => {
-    const bLabel = document.createElement('div')
-    bLabel.className   = 'block-label'
-    bLabel.textContent = block
-    container.appendChild(bLabel)
+  if (Object.keys(rows).length === 0) {
+    container.innerHTML = '<div class="empty-state"><p>No seats found in this block.</p></div>'
+    return
+  }
 
+  const blocks = { '': rows }   // single-block wrapper for loop below
+  Object.entries(blocks).forEach(([block, rows]) => {
     Object.entries(rows).sort().forEach(([row, rowSeats]) => {
       const rowEl = document.createElement('div')
       rowEl.className = 'seat-row'
@@ -133,7 +163,7 @@ function renderSeatMap(seats) {
           seatEl.title = 'Not available'
         } else {
           seatEl.classList.add('available')
-          seatEl.title = `${block} ${row}${s.seatNumber}`
+          seatEl.title = `${s.block} ${row}${s.seatNumber}`
           seatEl.onclick = () => toggleSeat(seatEl, s)
         }
         rowEl.appendChild(seatEl)
@@ -389,4 +419,18 @@ function renderChart(data) {
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
-initBookingTab()
+initBookingTab().then(async () => {
+  const params  = new URLSearchParams(window.location.search)
+  const eventId = params.get('eventId')
+  const timeId  = params.get('timeId')
+  if (!eventId) return
+
+  const sel = $('book-event')
+  sel.value = eventId
+  await onEventChange()
+
+  if (!timeId) return
+  const tSel = $('book-time')
+  tSel.value = timeId
+  await onTimeChange()
+})

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TicketStream | <%= event.name %></title>
+  <link rel="stylesheet" href="/css/index.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/view-event.css">
+  <link rel="stylesheet" href="/css/event-times.css">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav>
+    <a href="/" class="logo">TICKETSTREAM</a>
+    <ul class="nav-links">
+      <li><a href="/booking">Dashboard</a></li>
+      <li><a href="/">Events</a></li>
+      <li><a href="/contact">Support</a></li>
+      <li class="dropdown">
+        <a href="#" class="dropdown-toggle">Event Management ▾</a>
+        <ul class="dropdown-menu">
+          <li><a href="venues">Manage Venues</a></li>
+          <li><a href="events">Manage Events</a></li>
+          <li><a href="times-admin">Manage Times</a></li>
+        </ul>
+      </li>
+      <li><a href="/login" class="btn-login">Login</a></li>
+    </ul>
+  </nav>
+
+  <!-- Hero -->
+  <div class="ve-hero">
+    <img src="<%= event.image || 'https://via.placeholder.com/1200x380?text=' + encodeURIComponent(event.name) %>" alt="<%= event.name %>">
+    <div class="ve-hero-overlay">
+      <span class="event-tag <%= timeSlots.length === 0 ? 'sold-out-badge' : '' %>">
+        <%= timeSlots.length === 0 ? 'SOLD OUT' : (event.category || 'Event') %>
+      </span>
+      <h1><%= event.name %></h1>
+      <div class="ve-meta">
+        <% if (event.host) { %><span>🎤 <%= event.host %></span><% } %>
+        <% if (event.venueID) { %>
+          <span>📍 <%= event.venueID.name %><% if (event.venueID.address1) { %>, <%= event.venueID.address1 %><% } %></span>
+        <% } %>
+        <% if (timeSlots.length > 0) { %>
+          <span>📅 Next show: <%= new Date(timeSlots[0].eventTime).toLocaleDateString('en-ZA', { dateStyle: 'long' }) %></span>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layout -->
+  <div class="ve-layout">
+
+    <!-- Left: details -->
+    <div>
+      <a href="/" class="back-link">← Back to Events</a>
+
+      <% if (event.description) { %>
+        <div class="ve-card">
+          <h2>About This Event</h2>
+          <p class="ve-description"><%= event.description %></p>
+        </div>
+      <% } %>
+
+      <div class="ve-card">
+        <h2>Event Info</h2>
+        <div class="ve-details-grid">
+          <div class="ve-detail-item">
+            <label>Category</label>
+            <span><%= event.category %></span>
+          </div>
+          <% if (event.host) { %>
+          <div class="ve-detail-item">
+            <label>Host / Organiser</label>
+            <span><%= event.host %></span>
+          </div>
+          <% } %>
+          <% if (event.venueID) { %>
+          <div class="ve-detail-item">
+            <label>Venue</label>
+            <span><%= event.venueID.name %></span>
+          </div>
+          <div class="ve-detail-item">
+            <label>Address</label>
+            <span><%= event.venueID.address1 || 'TBA' %><% if (event.venueID.city) { %>, <%= event.venueID.city %><% } %></span>
+          </div>
+          <% } %>
+          <div class="ve-detail-item">
+            <label>Ticket Price</label>
+            <span>R<%= event.price %></span>
+          </div>
+          <div class="ve-detail-item">
+            <label>Upcoming Shows</label>
+            <span><%= timeSlots.length %></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: time slot picker -->
+    <div class="ve-slots-panel">
+      <div class="ve-card">
+        <h2>Select a Date & Time</h2>
+
+        <% if (timeSlots.length === 0) { %>
+          <div class="no-slots">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+            </svg>
+            <p>No upcoming shows scheduled.</p>
+          </div>
+        <% } else { %>
+          <% timeSlots.forEach(function(slot) { %>
+            <%
+              var now       = new Date();
+              var isPast    = new Date(slot.eventTime) < now;
+              var isSoldOut = slot.seatsAvailable === 0;
+              var isLow     = !isSoldOut && !isPast && slot.seatsAvailable <= 10;
+              var slotDate  = new Date(slot.eventTime);
+              var dateStr   = slotDate.toLocaleDateString('en-ZA', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+              var timeStr   = slotDate.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+            %>
+            <div class="slot-card <%= (isSoldOut || isPast) ? 'sold-out' : '' %>">
+              <div class="slot-date"><%= dateStr %></div>
+              <div class="slot-meta">
+                <span>🕐 <%= timeStr %></span>
+                <span class="slot-avail <%= isPast ? '' : isLow ? 'low' : 'ok' %>">
+                  <% if (isPast) { %>Past<% } else if (isSoldOut) { %>Sold out<% } else { %><%= slot.seatsAvailable %> seats left<% } %>
+                </span>
+              </div>
+              <% if (isPast || isSoldOut) { %>
+                <a class="btn-slot disabled"><%= isPast ? 'Expired' : 'Sold Out' %></a>
+              <% } else { %>
+                <a href="/booking?eventId=<%= event._id %>&timeId=<%= slot._id %>" class="btn-slot">Book This Time</a>
+              <% } %>
+            </div>
+          <% }); %>
+        <% } %>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    <p>&copy; 2026 TicketStream. Built for WPR381 Project.</p>
+  </footer>
+
+</body>
+</html>

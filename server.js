@@ -100,6 +100,26 @@ app.get('/', async (req, res) => {
   }
 });
 
+// Public event view page – /view-event?id=<eventId>
+app.get('/view-event', async (req, res) => {
+  try {
+    const { id } = req.query;
+    if (!id) return res.redirect('/');
+
+    const event = await Event.findById(id).populate('venueID').lean();
+    if (!event) return res.status(404).send('Event not found');
+
+    const timeSlots = await Times.find({ eventID: id })
+      .sort({ eventTime: 1 })
+      .lean();
+
+    res.render('view-event', { event, timeSlots });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error loading event');
+  }
+});
+
 // Event detail page – /event?id=<eventId>
 app.get('/event', async (req, res) => {
   try {
