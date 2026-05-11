@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 require('dotenv').config();//allow env variable use
 
 const venueController = require('./controllers/venueController')//controller for venue page route
+const eventController = require('./controllers/eventController')
 
 const uri = process.env.MONGO_URI;//use .env variable
 if (!uri) {
@@ -30,12 +31,12 @@ app.use((req, res, next) => {
 })
 
 //------------------------------routes-------------------------------
-app.use('/api/users',    require('./routes/userRoutes'))
-app.use('/api/events',   require('./routes/eventRoutes'))
-app.use('/api/venues',   require('./routes/venueRoutes'))
-app.use('/api/times',    require('./routes/timesRoutes'))
-app.use('/api/bookings', require('./routes/bookingRoutes'))
-app.use('/api/enqueries', require('./routes/enqueryRoutes'))
+app.use('/api/users',require('./routes/userRoutes'))
+app.use('/api/events',require('./routes/eventRoutes'))
+app.use('/api/venues',require('./routes/venueRoutes'))
+app.use('/api/times',require('./routes/timesRoutes'))
+app.use('/api/bookings',require('./routes/bookingRoutes'))
+app.use('/api/enqueries',require('./routes/enqueryRoutes'))
 
 //------------------------------view routes-------------------------------
 const Event = require('./models/event');
@@ -103,6 +104,7 @@ app.get('/login', (req, res) => res.render('login'));
 app.get('/contact', (req, res) => res.render('contact'));
 // Page route (renders EJS)
 app.get('/venues', venueController.getVenuesPage)
+app.get('/events', eventController.getEventsPage)
 app.get('/booking', (req, res) => res.render('booking'));
 
 mongoose.connect(uri)
