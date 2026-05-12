@@ -5,110 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - TicketStream</title>
     <link rel="stylesheet" href="/css/index.css">
-    <style>
-        .auth-container {
-            min-height: calc(100vh - 200px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 4rem 5%;
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-        }
-        .auth-card {
-            background: var(--white);
-            border-radius: 1.5rem;
-            box-shadow: var(--shadow);
-            max-width: 550px;
-            width: 100%;
-            overflow: hidden;
-        }
-        .auth-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: var(--white);
-            padding: 2rem;
-            text-align: center;
-        }
-        .auth-header h2 {
-            font-size: 1.75rem;
-            margin-bottom: 0.5rem;
-        }
-        .auth-body {
-            padding: 2rem;
-        }
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--text-color);
-        }
-        .form-group input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 2px solid #f1f5f9;
-            border-radius: 0.75rem;
-            font-size: 1rem;
-            transition: border-color 0.2s;
-            outline: none;
-        }
-        .form-group input:focus {
-            border-color: var(--primary-color);
-        }
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-        .btn-auth {
-            width: 100%;
-            padding: 0.875rem;
-            background: var(--primary-color);
-            color: var(--white);
-            border: none;
-            border-radius: 0.75rem;
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .btn-auth:hover {
-            transform: translateY(-2px);
-        }
-        .auth-footer {
-            text-align: center;
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid #f1f5f9;
-        }
-        .auth-footer a {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-weight: 600;
-        }
-        .alert {
-            padding: 0.75rem;
-            border-radius: 0.75rem;
-            margin-bottom: 1rem;
-            font-size: 0.875rem;
-        }
-        .alert-error {
-            background: #fee2e2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
-        }
-        .alert-success {
-            background: #dcfce7;
-            color: #16a34a;
-            border: 1px solid #bbf7d0;
-        }
-        .password-requirements {
-            font-size: 0.75rem;
-            color: var(--light-text);
-            margin-top: 0.25rem;
-        }
-    </style>
+    <link rel="stylesheet" href="/css/register.css">
 </head>
 <body>
     <nav>
@@ -120,7 +17,7 @@
                 <li><a href="/dashboard">Dashboard</a></li>
                 <li><a href="/logout" class="btn-login">Logout</a></li>
             <% } else { %>
-                <li><a href="/login" class="btn-login">Login</a></li>
+                <li><a href="/auth/login" class="btn-login">Login</a></li>
             <% } %>
         </ul>
     </nav>
@@ -164,7 +61,7 @@
                     <button type="submit" class="btn-auth">Register</button>
                 </form>
                 <div class="auth-footer">
-                    <p>Already have an account? <a href="/login">Login</a></p>
+                    <p>Already have an account? <a href="/auth/login">Login</a></p>
                 </div>
             </div>
         </div>
@@ -213,7 +110,7 @@
             };
 
             try {
-                const response = await fetch('/api/users/register', {
+                const response = await fetch('/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
@@ -223,7 +120,7 @@
                 if (response.ok) {
                     showMessage('Registration successful! Redirecting to login...', false);
                     setTimeout(() => {
-                        window.location.href = '/login';
+                        window.location.href = '/auth/login';
                     }, 1500);
                 } else {
                     showMessage(data.message || 'Registration failed');

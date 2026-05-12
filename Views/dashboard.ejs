@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - TicketStream</title>
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+
+</head>
+<body>
+    <nav>
+        <a href="/" class="logo">TICKETSTREAM</a>
+        <ul class="nav-links">
+            <li><a href="/">Events</a></li>
+            <li><a href="/contact">Support</a></li>
+            <li><a href="/logout" class="btn-login">Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="welcome-card">
+            <h1>Welcome back, <%= user.name %>! 👋</h1>
+            <p>Your ticket dashboard is ready</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>🎟️ Total Bookings</h3>
+                <div class="stat-number"><%= bookings ? bookings.length : 0 %></div>
+            </div>
+            <div class="stat-card">
+                <h3>📅 Member Since</h3>
+                <div class="stat-number" style="font-size: 1rem;"><%= new Date(user.createdAt).toLocaleDateString() %></div>
+            </div>
+            <div class="stat-card">
+                <h3>⭐ Account Type</h3>
+                <div class="stat-number" style="font-size: 1.2rem;"><%= user.role === 'admin' ? 'Administrator' : 'Regular User' %></div>
+            </div>
+        </div>
+
+        <div class="bookings-section">
+            <h2>Your Bookings</h2>
+            <% if (bookings && bookings.length > 0) { %>
+                <% bookings.forEach(function(booking) { %>
+                    <div class="booking-card">
+                        <strong><%= booking.eventId ? booking.eventId.name : 'Event' %></strong>
+                        <p>Booking Reference: <%= booking._id %></p>
+                        <p>Status: Confirmed</p>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <div class="empty-state">
+                    <p>You haven't made any bookings yet.</p>
+                    <a href="/" class="btn-book" style="display: inline-block; margin-top: 1rem;">Browse Events</a>
+                </div>
+            <% } %>
+        </div>
+
+<% if (user.role === 'admin') { %>
+    <!-- Admin Stats Cards - Holistic View -->
+    <div class="admin-stats-section">
+        <h2 style="margin-bottom: 1rem;">📊 Platform Overview</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>🎟️ Total Events</h3>
+                <div class="stat-number"><%= totalEvents || 0 %></div>
+            </div>
+            <div class="stat-card">
+                <h3>📅 Total Bookings</h3>
+                <div class="stat-number"><%= totalBookings || 0 %></div>
+            </div>
+            <div class="stat-card">
+                <h3>👥 Total Users</h3>
+                <div class="stat-number"><%= totalUsers || 0 %></div>
+            </div>
+            <div class="stat-card">
+                <h3>💰 Total Revenue</h3>
+                <div class="stat-number">R<%= totalRevenue || 0 %></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Action Links - Management -->
+    <div class="admin-section">
+        <h2>🔧 Admin Controls</h2>
+        <p>Manage events, venues, and show times.</p>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
+            <a href="/events" class="btn-admin">📅 Manage Events</a>
+            <a href="/venues" class="btn-admin">🏟️ Manage Venues</a>
+            <a href="/times-admin" class="btn-admin">⏰ Manage Show Times</a>
+        </div>
+    </div>
+
+    <!-- Recent Events Table -->
+    <div class="recent-section">
+        <h2>📋 Recent Events</h2>
+        <% if (recentEvents && recentEvents.length > 0) { %>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f1f5f9;">
+                        <th style="padding: 0.75rem; text-align: left;">Event Name</th>
+                        <th style="padding: 0.75rem; text-align: left;">Date</th>
+                        <th style="padding: 0.75rem; text-align: left;">Category</th>
+                        <th style="padding: 0.75rem; text-align: left;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% recentEvents.forEach(event => { %>
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 0.75rem;"><%= event.name %></td>
+                            <td style="padding: 0.75rem;"><%= event.earliestDate ? new Date(event.earliestDate).toLocaleDateString() : 'TBA' %></td>
+                            <td style="padding: 0.75rem;"><%= event.category || 'Uncategorized' %></td>
+                            <td style="padding: 0.75rem;">
+                                <% if (event.totalAvailable > 0) { %>
+                                    <span style="color: green;">Available</span>
+                                <% } else { %>
+                                    <span style="color: red;">Sold Out</span>
+                                <% } %>
+                            </td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        <% } else { %>
+            <p>No events found. <a href="/events">Create your first event</a></p>
+        <% } %>
+    </div>
+<% } %>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 TicketStream. Built for WPR381 Project.</p>
+    </footer>
+</body>
+</html>
