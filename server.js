@@ -1,5 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const session = require('express-session');//for session management
+const { setUserLocals } = require('./middleware/auth');
 require('dotenv').config();//allow env variable use
 
 const venueController = require('./controllers/venueController')//controller for venue page route
@@ -13,7 +15,26 @@ if (!uri) {
 }
 const app = express();
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));//for parsing form data
 app.use(express.static('public'));
+
+// Session middleware (for login)
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'ticketstream-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    httpOnly: true
+  }
+}));
+
+// Middleware to make user available in all views
+app.use((req, res, next) => {
+  res.locals.user = req.session.user || null;
+  next();
+});
+
 
 app.set('view engine', 'ejs');
 app.set('views', './Views');
