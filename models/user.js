@@ -12,14 +12,20 @@ const userSchema = new mongoose.Schema({
   address2: { type: String },
   city:     { type: String },
   zip:      { type: String },
-  province: { type: String }
-})
+  province: { type: String },
+  
+}, { timestamps: true });
 
-//---------------------------------------------------------
-userSchema.pre('save', async function (next) {//mongodb hook before saving
-  if (!this.isModified('password')) return next() //checks if password was changed
-  this.password = await bcrypt.hash(this.password, 10) ///hash password via bycript
-  next() //save user after hashing
-})
+userSchema.pre('save', async function() {
+  // Only hash if password is modified (or new)
+  if (this.isModified('password')) {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+  }
+});
+// Compare candidate password with stored hash
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+}
 
 module.exports = mongoose.model('User', userSchema)

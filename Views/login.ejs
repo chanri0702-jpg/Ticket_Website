@@ -5,100 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - TicketStream</title>
     <link rel="stylesheet" href="/css/index.css">
-    <style>
-        .auth-container {
-            min-height: calc(100vh - 200px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 4rem 5%;
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-        }
-        .auth-card {
-            background: var(--white);
-            border-radius: 1.5rem;
-            box-shadow: var(--shadow);
-            max-width: 450px;
-            width: 100%;
-            overflow: hidden;
-        }
-        .auth-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: var(--white);
-            padding: 2rem;
-            text-align: center;
-        }
-        .auth-header h2 {
-            font-size: 1.75rem;
-            margin-bottom: 0.5rem;
-        }
-        .auth-body {
-            padding: 2rem;
-        }
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--text-color);
-        }
-        .form-group input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 2px solid #f1f5f9;
-            border-radius: 0.75rem;
-            font-size: 1rem;
-            transition: border-color 0.2s;
-            outline: none;
-        }
-        .form-group input:focus {
-            border-color: var(--primary-color);
-        }
-        .btn-auth {
-            width: 100%;
-            padding: 0.875rem;
-            background: var(--primary-color);
-            color: var(--white);
-            border: none;
-            border-radius: 0.75rem;
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .btn-auth:hover {
-            transform: translateY(-2px);
-        }
-        .auth-footer {
-            text-align: center;
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid #f1f5f9;
-        }
-        .auth-footer a {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-weight: 600;
-        }
-        .alert {
-            padding: 0.75rem;
-            border-radius: 0.75rem;
-            margin-bottom: 1rem;
-            font-size: 0.875rem;
-        }
-        .alert-error {
-            background: #fee2e2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
-        }
-        .alert-success {
-            background: #dcfce7;
-            color: #16a34a;
-            border: 1px solid #bbf7d0;
-        }
-    </style>
+    <link rel="stylesheet" href="/css/login.css"> 
 </head>
 <body>
     <nav>
@@ -107,7 +14,7 @@
             <li><a href="/">Events</a></li>
             <li><a href="/contact">Support</a></li>
             <% if (user) { %>
-                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="/" class="btn-login">Dashboard</a></li>
                 <li><a href="/auth/logout" class="btn-login">Logout</a></li>
             <% } else { %>
                 <li><a href="/auth/login" class="btn-login">Login</a></li>
@@ -146,6 +53,7 @@
     </footer>
 
     <script>
+        // showMessage function MUST be defined first!
         function showMessage(message, isError = true) {
             const msgDiv = document.getElementById('message');
             msgDiv.innerHTML = `<div class="alert alert-${isError ? 'error' : 'success'}">${message}</div>`;
@@ -155,6 +63,38 @@
             }, 4000);
         }
 
+        function showFieldError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            const formGroup = field.closest('.form-group');
+            
+            // Remove existing error
+            const existingError = formGroup.querySelector('.field-error');
+            if (existingError) existingError.remove();
+            
+            // Add error class
+            field.classList.add('has-error');
+            
+            // Add error message
+            const errorSpan = document.createElement('span');
+            errorSpan.className = 'field-error';
+            errorSpan.style.color = '#dc2626';
+            errorSpan.style.fontSize = '0.75rem';
+            errorSpan.style.marginTop = '0.25rem';
+            errorSpan.style.display = 'block';
+            errorSpan.textContent = message;
+            formGroup.appendChild(errorSpan);
+        }
+
+        function clearFieldErrors() {
+            document.querySelectorAll('.has-error').forEach(field => {
+                field.classList.remove('has-error');
+            });
+            document.querySelectorAll('.field-error').forEach(error => {
+                error.remove();
+            });
+        }
+
+        // Single event listener
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -165,8 +105,10 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
 
+            // Clear previous errors
+            clearFieldErrors();
+
             try {
-                // CHANGED: Now using /auth/login instead of /api/users/login
                 const response = await fetch('/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -177,15 +119,21 @@
                 if (response.ok && data.success) {
                     showMessage('Login successful! Redirecting...', false);
                     setTimeout(() => {
-                        window.location.href = '/dashboard';
+                        window.location.href = data.redirect || '/';
                     }, 1000);
                 } else {
-                    showMessage(data.error || data.message || 'Login failed');
+                    // Handle field-specific error
+                    if (data.field) {
+                        showFieldError(data.field, data.error);
+                    } else {
+                        showMessage(data.error || data.message || 'Invalid email or password');
+                    }
                     button.disabled = false;
                     button.textContent = 'Login';
                 }
             } catch (error) {
-                showMessage('Network error. Please try again.');
+                console.error('Login error:', error);
+                showMessage('Network error. Please check your connection and try again.');
                 button.disabled = false;
                 button.textContent = 'Login';
             }
