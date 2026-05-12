@@ -203,10 +203,117 @@ nav {
 }
 
 footer {
-    background: #0f172a;
-    color: #94a3b8;
-    padding: 4rem 5%;
+    background: #2563eb;
+    color: #475569;
+    padding: 0;
+    margin-top: 2rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.site-footer {
+    background: #2563eb;
+    max-height: 200px;
+    overflow: hidden;
+    padding: 0
+}
+
+.footer-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0.7rem 5%;
+    padding-bottom: 0.5%;
+}
+
+.footer-section {
+    color: #475569;
+}
+
+.footer-section h4 {
+    color: white;
+    font-size: 0.75rem;
+    margin-bottom: 0;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.footer-section p {
+    line-height: 1.4;
+    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    background-color: #2563eb;
+    color: white;
+}
+
+.footer-section ul {
+    list-style: none;
+}
+
+.footer-section ul li {
+    margin-bottom: 0.2rem;
+    height: 16px;
+    padding: 0%;
+}
+
+.footer-section ul li a {
+    color: white;
+    text-decoration: none;
+    font-size: 0.7rem;
+    transition: color 0.3s ease;
+}
+
+.footer-section ul li a:hover {
+    color: var(--primary-color);
+}
+
+.social-links {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.social-links a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: fit-content;
+    background: #e2e8f0;
+    border-radius: 50%;
+    color: white;
+    text-decoration: none;
+    transition: background 0.3s ease, color 0.3s ease;
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+
+.social-links a:hover {
+    background: var(--primary-color);
+    color: var(--white);
+}
+
+.footer-bottom {
+
+    padding: 0.5rem 5%;
     text-align: center;
+    background-color: #1c4aae;
+    color: white;
+    font-size: 0.7rem;
+}
+
+@media (max-width: 768px) {
+    .footer-content {
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        padding: 1rem 5%;
+    }
+    
+    .footer-bottom {
+        padding: 0.75rem 5%;
+    }
 }
 
 .filter-form {
