@@ -1,9 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const session = require('express-session');//for session management
-const { setUserLocals } = require('./middleware/auth');
-const cookieParser = require('cookie-parser');
-
+const session = require('express-session');//for session manag
 require('dotenv').config();//allow env variable use
 
 
@@ -11,10 +8,9 @@ require('dotenv').config();//allow env variable use
 const venueController = require('./controllers/venueController')//controller for venue page route
 const eventController = require('./controllers/eventController')
 const timesController = require('./controllers/timesController')
-const userController = require('./controllers/userController')
 
 //middleware
-const {protect, adminOnly} = require('./public/js/auth')
+const { requireAuth, requireAdmin, setUserLocals } = require('./middleware/auth')
 
 //env validation
 const uri = process.env.MONGO_URI;//use .env variable
@@ -22,6 +18,12 @@ if (!uri) {
   console.error("MONGO_URI is not defined in .env file");
   process.exit(1);
 }
+const port = process.env.PORT;
+if (!port) {
+  console.error("PORT is not defined in .env file");
+  process.exit(1);
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));//for parsing form data
@@ -38,35 +40,31 @@ app.use(session({
   }
 }));
 
-// Middleware to make user available in all views
-app.use((req, res, next) => {
-  res.locals.user = req.session.user || null;
-  next();
-});
-
-
 app.set('view engine', 'ejs');
 app.set('views', './Views');
 
-const port = process.env.PORT;
-if (!port) {
-  console.error("PORT is not defined in .env file");
-  process.exit(1);
-}
+// make user available in all EJS views
+app.use(setUserLocals)
 
 //setup
 const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 app.use(cookieParser());// for parsing cookies for JWT 
-app.set('view engine', 'ejs');
-app.set('views', './Views');
 
 //request logging middleware
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`); // logs every request
   next();
 });
+
+// auth routes (public)
+app.use('/auth', require('./routes/authRoutes'))
+
+// shortcut routes so /login and /register still work
+app.get('/login',    (req, res) => res.redirect('/auth/login'))
+app.get('/register', (req, res) => res.redirect('/auth/register'))
+
 
 //models for view
 const Event = require('./models/event');
@@ -80,9 +78,11 @@ app.use('/api/times',require('./routes/timesRoutes'));
 app.use('/api/bookings',require('./routes/bookingRoutes'));
 app.use('/api/enqueries',require('./routes/enqueryRoutes'));
 
+
+//------------------------View Routes-------------------------
 app.post('/api/users/login',  userController.login)
 app.post('/api/users/logout', userController.logout)
-app.use('/profile', protect, viewController.getProfilePage)
+app.use('/profile', requireAuth, viewController.getProfilePage)
 
 // Home – event listing with search / filter
 app.get('/', async (req, res) => {
@@ -139,16 +139,23 @@ app.get('/booking', (req, res) => res.render('booking'));
 app.get('/login', (req, res) => res.render('login'));
 
 //protected user path
-app.get('/profile', protect, (req, res) => res.render('profile', { user: req.user }))//pass user info to profile page;
+app.get('/profile',   requireAuth, (req, res) => res.render('profile', { user: req.session.user }))
+app.get('/dashboard', requireAuth, (req, res) => res.render('dashboard', { user: req.session.user }))
 
 app.get('/events', eventController.getEventsPage)
 app.get('/times-admin', timesController.getTimesPage)
 
 
 // admin routes
-app.get('/venues', protect, adminOnly, venueController.getVenuesPage);
-app.get('/events', protect, adminOnly, eventController.getEventsPage);
-app.get('/times-admin', protect, adminOnly, timesController.getTimesPage);
+app.get('/venues', requireAdmin, venueController.getVenuesPage);
+app.get('/events', requireAdmin, eventController.getEventsPage);
+app.get('/times-admin', requireAdmin, timesController.getTimesPage);
+
+if (user.role === 'admin') {
+  res.redirect('/events') // admin goes to event management
+} else {
+  res.redirect('/dashboard') // regular user goes to dashboard
+}
 
 // ─── database start ────────────────────────────────────────────────────────
 mongoose.connect(uri)

@@ -23,4 +23,13 @@ const adminOnly = (req, res, next) => {
   next()
 }
 
-module.exports = { protect, adminOnly }
+const decodeUser = (req) => {
+  try {
+    const jwt = require('jsonwebtoken')
+    return jwt.verify(req.cookies.token, process.env.JWT_SECRET)
+  } catch {
+    return null
+  }
+}
+
+module.exports = { protect, adminOnly, decodeUser }
