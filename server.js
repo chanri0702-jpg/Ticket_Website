@@ -1,5 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const session = require('express-session');//for session management
+const { setUserLocals } = require('./middleware/auth');
 const cookieParser = require('cookie-parser');
 
 require('dotenv').config();//allow env variable use
@@ -20,6 +22,32 @@ if (!uri) {
   console.error("MONGO_URI is not defined in .env file");
   process.exit(1);
 }
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));//for parsing form data
+app.use(express.static('public'));
+
+// Session middleware (for login)
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'ticketstream-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    httpOnly: true
+  }
+}));
+
+// Middleware to make user available in all views
+app.use((req, res, next) => {
+  res.locals.user = req.session.user || null;
+  next();
+});
+
+
+app.set('view engine', 'ejs');
+app.set('views', './Views');
+
 const port = process.env.PORT;
 if (!port) {
   console.error("PORT is not defined in .env file");
