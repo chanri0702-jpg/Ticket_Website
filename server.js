@@ -2,12 +2,21 @@ const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');//for session management
 const { setUserLocals } = require('./middleware/auth');
+const cookieParser = require('cookie-parser');
+
 require('dotenv').config();//allow env variable use
 
+
+//controllers
 const venueController = require('./controllers/venueController')//controller for venue page route
 const eventController = require('./controllers/eventController')
 const timesController = require('./controllers/timesController')
+const userController = require('./controllers/userController')
 
+//middleware
+const {protect, adminOnly} = require('./public/js/auth')
+
+//env validation
 const uri = process.env.MONGO_URI;//use .env variable
 if (!uri) {
   console.error("MONGO_URI is not defined in .env file");
@@ -45,10 +54,23 @@ if (!port) {
   process.exit(1);
 }
 
+//setup
+const app = express();
+app.use(express.json());
+app.use(express.static('public'));
+app.use(cookieParser());// for parsing cookies for JWT 
+app.set('view engine', 'ejs');
+app.set('views', './Views');
+
+//request logging middleware
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`); // logs every request
   next();
 });
+
+//models for view
+const Event = require('./models/event');
+const Times = require('./models/times');
 
 //------------------------------routes-------------------------------
 app.use('/auth', require('./routes/authRoutes'));
@@ -59,39 +81,21 @@ app.use('/api/times',require('./routes/timesRoutes'));
 app.use('/api/bookings',require('./routes/bookingRoutes'));
 app.use('/api/enqueries',require('./routes/enqueryRoutes'));
 
-//------------------------------view routes-------------------------------
-const Event = require('./models/event');
-const Times = require('./models/times');
+app.post('/api/users/login',  userController.login)
+app.post('/api/users/logout', userController.logout)
+app.use('/profile', protect, viewController.getProfilePage)
 
 // Home – event listing with search / filter
 app.get('/', async (req, res) => {
   try {
     let matchStage = {};
-
-    if (req.query.search) {
-      matchStage.name = { $regex: req.query.search, $options: 'i' };
-    }
-
-    if (req.query.category) {
-      matchStage.category = req.query.category;
-    }
+    if (req.query.search) { matchStage.name = { $regex: req.query.search, $options: 'i' };}
+    if (req.query.category) {matchStage.category = req.query.category;}
 
     const events = await Event.aggregate([
       { $match: matchStage },
-      {
-        $lookup: {
-          from: 'times',
-          localField: '_id',
-          foreignField: 'eventID',
-          as: 'timeSlots'
-        }
-      },
-      {
-        $addFields: {
-          totalAvailable: { $sum: '$timeSlots.seatsAvailable' },
-          earliestDate:   { $min: '$timeSlots.eventTime' }
-        }
-      },
+      { $lookup: { from: 'times', localField: '_id', foreignField: 'eventID', as: 'timeSlots'}},
+      { $addFields: { totalAvailable: { $sum: '$timeSlots.seatsAvailable' }, earliestDate:{ $min: '$timeSlots.eventTime' }}},
       {
         $match: {
           ...(req.query.date ? {
@@ -104,17 +108,9 @@ app.get('/', async (req, res) => {
           ...(req.query.availability === 'soldout'   ? { totalAvailable: { $eq: 0 } } : {})
         }
       },
-      {
-        $lookup: {
-          from: 'venues',
-          localField: 'venueID',
-          foreignField: '_id',
-          as: 'venue'
-        }
-      },
+      { $lookup: {from: 'venues', localField: 'venueID', foreignField: '_id', as: 'venue'}},
       { $unwind: { path: '$venue', preserveNullAndEmptyArrays: true } }
     ]);
-
     res.render('index', { events, query: req.query });
   } catch (err) {
     console.error(err);
@@ -122,19 +118,15 @@ app.get('/', async (req, res) => {
   }
 });
 
-// Public event view page – /view-event?id=<eventId>
+
+// Public event view page
 app.get('/view-event', async (req, res) => {
   try {
     const { id } = req.query;
     if (!id) return res.redirect('/');
-
-    const event = await Event.findById(id).populate('venueID').lean();
+    const event = await Event.findById(id).populate('venueID').lean(); //get event and venue details
     if (!event) return res.status(404).send('Event not found');
-
-    const timeSlots = await Times.find({ eventID: id })
-      .sort({ eventTime: 1 })
-      .lean();
-
+    const timeSlots = await Times.find({ eventID: id }).sort({ eventTime: 1 }).lean();//get time slots for event
     res.render('view-event', { event, timeSlots });
   } catch (err) {
     console.error(err);
@@ -142,42 +134,30 @@ app.get('/view-event', async (req, res) => {
   }
 });
 
-// Event detail page – /event?id=<eventId>
-app.get('/event', async (req, res) => {
-  try {
-    const { id } = req.query;
-
-    if (!id) {
-      return res.redirect('/');
-    }
-
-    // Fetch the event and populate its venue
-    const event = await Event.findById(id).populate('venueID').lean();
-
-    if (!event) {
-      return res.status(404).send('Event not found');
-    }
-
-    // Fetch all time slots for this event, sorted earliest first
-    const timeSlots = await Times.find({ eventID: id })
-      .sort({ eventTime: 1 })
-      .lean();
-
-    res.render('event', { event, timeSlots });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Error loading event');
-  }
-});
-
 // Auth / misc pages
-app.get('/login',   (req, res) => res.render('login'));
 app.get('/contact', (req, res) => res.render('contact'));
+app.get('/booking', (req, res) => res.render('booking'));
+app.get('/login', (req, res) => res.render('login'));
+
+//protected user path
+app.get('/profile', protect, (req, res) => res.render('profile', { user: req.user }))//pass user info to profile page;
+
 app.get('/events', eventController.getEventsPage)
 app.get('/times-admin', timesController.getTimesPage)
-app.get('/booking', (req, res) => res.render('booking'));
 
-// Times management page – fetch all events for dropdown
+
+// admin routes
+app.get('/venues', protect, adminOnly, venueController.getVenuesPage);
+app.get('/events', protect, adminOnly, eventController.getEventsPage);
+app.get('/times-admin', protect, adminOnly, timesController.getTimesPage);
+
+// ─── database start ────────────────────────────────────────────────────────
+mongoose.connect(uri)
+  .then(() => console.log("Connected to MongoDB"))
+  .catch(err => {console.error("Could not connect to MongoDB", err);process.exit(1);});
+
+
+  /* // Times management page – fetch all events for dropdown
 app.get('/times', async (req, res) => {
   try {
     const events = await Event.find().lean();
@@ -186,17 +166,8 @@ app.get('/times', async (req, res) => {
     console.error(err);
     res.status(500).send('Error loading times page');
   }
-});
-// Admin – venue management
-app.get('/venues', venueController.getVenuesPage);
+}); */
 
-// ─── database start ────────────────────────────────────────────────────────
-mongoose.connect(uri)
-  .then(() => console.log("Connected to MongoDB"))
-  .catch(err => {
-    console.error("Could not connect to MongoDB", err);
-    process.exit(1);
-  });
 
 //start server node.js
 app.listen(port, () => {

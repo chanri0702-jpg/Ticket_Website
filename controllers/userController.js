@@ -1,5 +1,6 @@
-const User = require('../models/user')
+const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
+const User = require('../models/User')
 
 const register = async (req, res) => {
   try {
@@ -19,6 +20,17 @@ const login = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password)
     if (!isMatch) return res.status(401).json({ message: 'Invalid email or password' })
+
+     const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN }
+    )
+
+     res.cookie('token', token, {
+      httpOnly: true,  // http only cookie
+      maxAge: 24 * 60 * 60 * 1000 // 1 day in ms
+    })
 
     res.json({ message: 'Login successful', user: { email: user.email, name: user.name, role: user.role } })
   } catch (err) {
@@ -48,4 +60,9 @@ const updateProfile = async (req, res) => {
   }
 }
 
-module.exports = { register, login, getProfile, updateProfile }
+const logout = (req, res) => {
+  res.clearCookie('token') // Clear the JWT cookie
+  res.redirect('/login')
+}
+
+module.exports = { register, login, getProfile, updateProfile, logout }

@@ -14,25 +14,7 @@ o Enforces authorization via middleware -->
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body class="admin-body">
-
-  <!-- Navbar -->
-  <nav>
-    <a href="/" class="logo">TICKETSTREAM</a>
-    <ul class="nav-links">
-      <li><a href="/booking">Dashboard</a></li>
-      <li><a href="/">Events</a></li>
-      <li><a href="/contact">Support</a></li>
-      <li class="dropdown">
-        <a href="#" class="dropdown-toggle">Event Management ▾</a>
-        <ul class="dropdown-menu">
-          <li><a href="venues">Manage Venues</a></li>
-          <li><a href="events">Manage Events</a></li>
-          <li><a href="times-admin">Manage Times</a></li>
-        </ul>
-      </li>
-      <li><a href="/login" class="btn-login">Login</a></li>
-    </ul>
-  </nav>
+  <%- include('partials/header') %>
 
   <div class="admin-layout">
 
@@ -148,6 +130,9 @@ o Enforces authorization via middleware -->
       </div>
     </div>
   </div>
+  <%- include('partials/footer') %>
+</body>
+</html>
 
   <!-- Inline venue data for JS -->
   <script>
