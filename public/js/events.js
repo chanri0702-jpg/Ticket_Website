@@ -2,6 +2,22 @@ let currentEventId = null;
 let eventToDelete = null;
 let currentBlocks = []; // blocks from selected venue
 
+function showToast(msg, type = 'success') {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:2rem;right:2rem;padding:.875rem 1.5rem;border-radius:.5rem;font-weight:500;font-size:.9rem;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;max-width:360px;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.background = type === 'error' ? '#ef4444' : '#22c55e';
+  t.style.color = '#fff';
+  t.style.opacity = '1';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { t.style.opacity = '0'; }, 3500);
+}
+
 // Handle image file selection and preview
 document.getElementById('imageFile').addEventListener('change', function () {
   const file = this.files[0];
@@ -122,14 +138,14 @@ async function submitEvent(e) {
       if (uploadRes.ok) {
         imageUrl = uploadData.url;
       } else if (uploadRes.status === 403) {
-        alert('You must be logged in as an admin to upload images. Please make sure you are logged in.');
+        showToast('You must be logged in as an admin to upload images.', 'error');
         return;
       } else {
-        alert('Image upload failed: ' + (uploadData.message || 'Unknown error'));
+        showToast('Image upload failed: ' + (uploadData.message || 'Unknown error'), 'error');
         return;
       }
     } catch (err) {
-      alert('Error uploading image: ' + err.message);
+      showToast('Error uploading image: ' + err.message, 'error');
       return;
     }
   }
@@ -158,13 +174,13 @@ async function submitEvent(e) {
     });
     const data = await res.json();
     if (res.ok) {
-      alert(isEditing ? 'Event updated successfully!' : 'Event added successfully!');
+      showToast(isEditing ? 'Event updated successfully!' : 'Event added successfully!');
       window.location.reload();
     } else {
-      alert('Error: ' + (data.message || 'Something went wrong'));
+      showToast('Error: ' + (data.message || 'Something went wrong'), 'error');
     }
   } catch (err) {
-    alert('Failed to save event: ' + err.message);
+    showToast('Failed to save event: ' + err.message, 'error');
   }
 }
  
@@ -274,10 +290,10 @@ async function confirmDelete() {
       window.location.reload();
     } else {
       const data = await res.json();
-      alert('Error: ' + (data.message || 'Failed to delete event'));
+      showToast('Error: ' + (data.message || 'Failed to delete event'), 'error');
     }
   } catch (err) {
-    alert('Failed to delete event: ' + err.message);
+    showToast('Failed to delete event: ' + err.message, 'error');
   }
 }
  

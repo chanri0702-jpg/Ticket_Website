@@ -5,6 +5,22 @@ let currentVenue      = null;
 let currentTimeSlot   = null;  // full time slot loaded from API
 let reservedSeats     = [];    // seats being reserved in this session
 let selectedBlock     = null;
+
+function showToast(msg, type = 'success') {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:2rem;right:2rem;padding:.875rem 1.5rem;border-radius:.5rem;font-weight:500;font-size:.9rem;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;max-width:360px;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.background = type === 'error' ? '#ef4444' : '#22c55e';
+  t.style.color = '#fff';
+  t.style.opacity = '1';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { t.style.opacity = '0'; }, 3500);
+}
  
 function onEventSelect() {
   const eventId = document.getElementById('sidebarEventSelect').value;
@@ -101,13 +117,13 @@ async function submitTime(e) {
     });
     const data = await res.json();
     if (res.ok) {
-      alert(isEditing ? 'Show time updated!' : 'Show time added!');
+      showToast(isEditing ? 'Show time updated!' : 'Show time added!');
       window.location.reload();
     } else {
-      alert('Error: ' + (data.message || 'Something went wrong'));
+      showToast('Error: ' + (data.message || 'Something went wrong'), 'error');
     }
   } catch (err) {
-    alert('Failed to save time: ' + err.message);
+    showToast('Failed to save time: ' + err.message, 'error');
   }
 }
 
@@ -201,7 +217,7 @@ function renderSeatsPanel() {
 async function saveManualSeats() {
   const count = parseInt(document.getElementById('manualSeatsAvailable').value);
   if (isNaN(count) || count < 0) {
-    alert('Please enter a valid number of seats.');
+    showToast('Please enter a valid number of seats.', 'error');
     return;
   }
   try {
@@ -210,10 +226,10 @@ async function saveManualSeats() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ seatsAvailable: count })
     });
-    if (res.ok) alert('Seats updated successfully!');
-    else alert('Failed to update seats.');
+    if (res.ok) showToast('Seats updated successfully!');
+    else showToast('Failed to update seats.', 'error');
   } catch (err) {
-    alert('Error: ' + err.message);
+    showToast('Error: ' + err.message, 'error');
   }
 }
  
@@ -360,7 +376,7 @@ async function saveReservedSeats() {
     // no layout mode — just save count
     const count = parseInt(document.getElementById('noLayoutReserveCount').value);
     if (isNaN(count) || count < 1) {
-      alert('Please enter a valid number of seats to reserve.');
+      showToast('Please enter a valid number of seats to reserve.', 'error');
       return;
     }
     try {
@@ -370,22 +386,22 @@ async function saveReservedSeats() {
         body: JSON.stringify({ count })
       });
       if (res.ok) {
-        alert('Seats reserved!');
+        showToast('Seats reserved!');
         document.getElementById('reserveOverlay').style.display = 'none';
         window.location.reload();
       } else {
         const d = await res.json();
-        alert('Error: ' + d.message);
+        showToast('Error: ' + d.message, 'error');
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      showToast('Error: ' + err.message, 'error');
     }
     return;
   }
  
   // layout mode — send seat IDs
   if (reservedSeats.length === 0) {
-    alert('No seats selected.');
+    showToast('No seats selected.', 'error');
     return;
   }
  
@@ -396,15 +412,15 @@ async function saveReservedSeats() {
       body: JSON.stringify({ seatIds: reservedSeats.map(s => s._id) })
     });
     if (res.ok) {
-      alert(`${reservedSeats.length} seat(s) reserved!`);
+      showToast(`${reservedSeats.length} seat(s) reserved!`);
       document.getElementById('reserveOverlay').style.display = 'none';
       window.location.reload();
     } else {
       const d = await res.json();
-      alert('Error: ' + d.message);
+      showToast('Error: ' + d.message, 'error');
     }
   } catch (err) {
-    alert('Error: ' + err.message);
+    showToast('Error: ' + err.message, 'error');
   }
 }
  
@@ -442,10 +458,10 @@ async function confirmDelete() {
       window.location.reload();
     } else {
       const d = await res.json();
-      alert('Error: ' + (d.message || 'Failed to delete'));
+      showToast('Error: ' + (d.message || 'Failed to delete'), 'error');
     }
   } catch (err) {
-    alert('Error: ' + err.message);
+    showToast('Error: ' + err.message, 'error');
   }
 }
  

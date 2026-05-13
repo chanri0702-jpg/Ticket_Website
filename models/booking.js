@@ -8,7 +8,7 @@ const ticketSchema = new mongoose.Schema({
 
 const bookingSchema = new mongoose.Schema({
   paydate: { type: Date,   required: true },
-  email:   { type: String, ref: 'User',  required: true },
+  email:   { type: String, required: true },
   total:   { type: Number, required: true },
   eventID: { type: mongoose.Schema.Types.ObjectId, ref: 'Event',  required: true },
   timeID:  { type: mongoose.Schema.Types.ObjectId, ref: 'Times',  required: true },

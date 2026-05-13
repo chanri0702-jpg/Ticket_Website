@@ -1,5 +1,21 @@
 let currentVenueId = null;
 let venueToDelete = null;
+
+function showToast(msg, type = 'success') {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:2rem;right:2rem;padding:.875rem 1.5rem;border-radius:.5rem;font-weight:500;font-size:.9rem;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;max-width:360px;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.background = type === 'error' ? '#ef4444' : '#22c55e';
+  t.style.color = '#fff';
+  t.style.opacity = '1';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { t.style.opacity = '0'; }, 3500);
+}
  
 document.getElementById('layoutImage').addEventListener('change', function () {
   const file = this.files[0];
@@ -214,13 +230,13 @@ async function submitVenue(e) {
       const uploadRes = await fetch('/api/upload-image', { method: 'POST', body: formData, credentials: 'include' });
       if (!uploadRes.ok) {
         const err = await uploadRes.json();
-        alert('Image upload failed: ' + (err.message || 'Unknown error'));
+        showToast('Image upload failed: ' + (err.message || 'Unknown error'), 'error');
         return;
       }
       const uploadData = await uploadRes.json();
       layoutImage = uploadData.url;
     } catch (err) {
-      alert('Image upload failed: ' + err.message);
+      showToast('Image upload failed: ' + err.message, 'error');
       return;
     }
   }
@@ -240,13 +256,13 @@ async function submitVenue(e) {
  
     const data = await res.json();
     if (res.ok) {
-      alert(isEditing ? 'Venue updated successfully!' : 'Venue added successfully!');
+      showToast(isEditing ? 'Venue updated successfully!' : 'Venue added successfully!');
       window.location.reload();
     } else {
-      alert('Error: ' + (data.message || 'Something went wrong'));
+      showToast('Error: ' + (data.message || 'Something went wrong'), 'error');
     }
   } catch (err) {
-    alert('Failed to save venue: ' + err.message);
+    showToast('Failed to save venue: ' + err.message, 'error');
   }
 }
  
@@ -358,10 +374,10 @@ async function confirmDelete() {
       window.location.reload();
     } else {
       const data = await res.json();
-      alert('Error: ' + (data.message || 'Failed to delete venue'));
+      showToast('Error: ' + (data.message || 'Failed to delete venue'), 'error');
     }
   } catch (err) {
-    alert('Failed to delete venue: ' + err.message);
+    showToast('Failed to delete venue: ' + err.message, 'error');
   }
 }
  

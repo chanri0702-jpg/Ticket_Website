@@ -155,6 +155,10 @@ input::placeholder { color: #94a3b8; }
 
 /* ═══════════════════════════════ SEAT GRID ═════════════════════════════ */
 .seat-section { margin-top: 1rem; }
+#seat-map-inner {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
 .block-label {
     font-family: var(--ff-head);
     letter-spacing: 1px;

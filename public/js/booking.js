@@ -184,18 +184,13 @@ function renderSeatMap(seats) {
       venue = typeof event.venueID === 'object' ? event.venueID : null
     }
     
-    console.log('[BookingDebug] currentTimeSlot.eventID:', event)
+    /* console.log('[BookingDebug] currentTimeSlot.eventID:', event)
     console.log('[BookingDebug] venue:', venue)
-    console.log('[BookingDebug] venue.layoutImage:', venue ? venue.layoutImage : 'NO VENUE')
+    console.log('[BookingDebug] venue.layoutImage:', venue ? venue.layoutImage : 'NO VENUE') */
     
     if (venue && venue.layoutImage) {
       const imgContainer = document.createElement('div')
       imgContainer.style.cssText = 'margin-bottom:1.5rem;text-align:center;'
-      // Show URL as text for debugging
-      const debugText = document.createElement('p')
-      debugText.style.cssText = 'font-size:.7rem;color:#999;word-break:break-all;margin-bottom:.5rem;'
-      debugText.textContent = 'Image URL: ' + venue.layoutImage
-      imgContainer.appendChild(debugText)
       const img = document.createElement('img')
       img.src = venue.layoutImage
       img.alt = (venue.name || 'Venue') + ' seating layout'

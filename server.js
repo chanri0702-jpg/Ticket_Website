@@ -79,9 +79,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// auth routes (public)
-app.use('/auth', require('./routes/authRoutes'))
-
 // shortcut routes so /login and /register still work
 app.get('/login',    (req, res) => res.redirect('/auth/login'))
 app.get('/register', (req, res) => res.redirect('/auth/register'))
@@ -163,18 +160,15 @@ app.get('/login', (req, res) => res.render('login'));
 
 
 //protected user path
-app.get('/profile',   requireAuth, (req, res) => res.render('profile', { user: req.session.user }))
 app.get('/booking', requireAuth, bookingController.getBookingPage);
 
 
-app.get('/events', eventController.getEventsPage)
-app.get('/times-admin', timesController.getTimesPage)
+app.get('/events', requireAdmin, eventController.getEventsPage)
+app.get('/times-admin', requireAdmin, timesController.getTimesPage)
 
 
 //admin routes
 app.get('/venues', requireAdmin, venueController.getVenuesPage);
-app.get('/events', requireAdmin, eventController.getEventsPage);
-app.get('/times-admin', requireAdmin, timesController.getTimesPage);
 app.get('/booking-admin', requireAdmin, bookingController.getAdminBookingPage);
 app.get('/enquiries', requireAdmin, (req, res) => res.render('enquiries'));
 //database start
