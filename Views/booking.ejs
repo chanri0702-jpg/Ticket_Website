@@ -40,7 +40,13 @@ usage) -->
       <h2 class="card-title">Event Details</h2>
       <div class="form-group">
         <label>Your Email</label>
-        <input type="email" id="book-email" placeholder="you@example.com" />
+        <input
+          type="email"
+          id="book-email"
+          value="<%= user ? user.email : '' %>"
+          placeholder="you@example.com"
+          <% if (user) { %>readonly style="background:#f1f5f9;cursor:not-allowed;"<% } %>
+        />
       </div>
       <div class="form-group">
         <label>Select Event</label>
@@ -117,7 +123,13 @@ usage) -->
     <div style="display:flex;gap:1rem;align-items:flex-end">
       <div class="form-group" style="margin:0;flex:1">
         <label>Email Address</label>
-        <input type="email" id="history-email" placeholder="you@example.com" />
+        <input
+          type="email"
+          id="history-email"
+          value="<%= user ? user.email : '' %>"
+          placeholder="you@example.com"
+          <% if (user) { %>readonly style="background:#f1f5f9;cursor:not-allowed;"<% } %>
+        />
       </div>
       <button class="btn btn-primary" onclick="loadHistory()">Load Bookings</button>
     </div>
@@ -132,6 +144,15 @@ usage) -->
     </div>
   </div>
 </div>
+
+<script>
+  // Auto-load booking history if user is logged in
+  <% if (user) { %>
+  window.addEventListener('DOMContentLoaded', () => {
+    loadHistory();
+  });
+  <% } %>
+</script>
 
 <script src="../js/booking.js"></script>
 <%- include('partials/footer') %>
