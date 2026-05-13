@@ -32,7 +32,6 @@ const upload = multer({
 const venueController = require('./controllers/venueController')//controller for venue page route
 const eventController = require('./controllers/eventController')
 const timesController = require('./controllers/timesController')
-const userController = require('./controllers/userController')
 const bookingController = require('./controllers/bookingController')
 
 //middleware
@@ -90,7 +89,6 @@ const Times = require('./models/times');
 
 //------------------------------routes-------------------------------
 app.use('/auth', require('./routes/authRoutes'));
-app.use('/api/users',require('./routes/userRoutes'));
 app.use('/api/events',require('./routes/eventRoutes'));
 app.use('/api/venues',require('./routes/venueRoutes'));
 app.use('/api/times',require('./routes/timesRoutes'));
@@ -102,9 +100,6 @@ app.post('/api/upload-image', requireAdmin, upload.single('file'), eventControll
 
 
 //------------------------View Routes-------------------------
-app.post('/api/users/login',  userController.login)
-app.post('/api/users/logout', userController.logout)
-
 // Home – event listing with search / filter
 app.get('/', async (req, res) => {
   try {

@@ -63,7 +63,7 @@ TicketStream is a ticket-booking platform that lets users browse events, view se
 | Framework | Express 5 |
 | Database | MongoDB (via Mongoose 9) |
 | Templating | EJS 5 |
-| Auth | Session-based (express-session) + JWT (cookies) |
+| Auth | Session-based (express-session) |
 | Password hashing | bcrypt |
 | File uploads | Multer (memory storage) + Cloudinary |
 | Dev tooling | Nodemon |
@@ -80,7 +80,6 @@ Ticket_Website/
 │   ├── enqueryController.js    # Enquiry CRUD
 │   ├── eventController.js      # Event CRUD + image upload
 │   ├── timesController.js      # Time slot CRUD + seat reservation
-│   ├── userController.js       # User profile API
 │   └── venueController.js      # Venue CRUD
 │
 ├── middleware/
@@ -100,7 +99,6 @@ Ticket_Website/
 │   ├── enqueryRoutes.js
 │   ├── eventRoutes.js
 │   ├── timesRoutes.js
-│   ├── userRoutes.js
 │   └── venueRoutes.js
 │
 ├── Views/
@@ -114,7 +112,6 @@ Ticket_Website/
 │   ├── events.ejs              # Admin event management
 │   ├── index.ejs               # Public event listing
 │   ├── login.ejs
-│   ├── profile.ejs
 │   ├── register.ejs
 │   ├── times-admin.ejs         # Admin time slot management
 │   ├── venues.ejs              # Admin venue management
@@ -178,12 +175,11 @@ PORT=3000
 # Dashboard → Settings → Access Keys → "API environment variable"
 CLOUDINARY_URL=cloudinary://<api_key>:<api_secret>@<cloud_name>
 
-# Session secret (any long random string)
+# Session secret — used by express-session in server.js
+# Falls back to 'ticketstream-secret-key' if not set
 SESSION_SECRET=change_me_to_something_random
 
-# JWT settings (used by the legacy /api/users endpoints)
-JWT_SECRET=change_me_too
-JWT_EXPIRES_IN=1d
+
 ```
 
 > **Tip:** The app will print a warning on startup if `CLOUDINARY_URL` is missing and will exit if `MONGO_URI` or `PORT` are missing.
@@ -246,7 +242,6 @@ Admin status is determined by `user.role === 'admin'` **or** `user.email === 'ad
 | `/auth/register` | Guest only | Registration form |
 | `/auth/logout` | Any | Destroys session and redirects to `/` |
 | `/booking` | Auth | Book tickets, view booking history |
-| `/profile` | Auth | User profile page |
 | `/contact` | Public | Submit a support enquiry |
 | `/venues` | Admin | Create and manage venues (with seating layout builder) |
 | `/events` | Admin | Create and manage events |
@@ -375,8 +370,6 @@ response, createdAt, resolvedAt
 
 The app uses **session-based authentication** via `express-session`. On successful login the user object (id, name, email, role) is stored in `req.session.user` and made available to all EJS views via the `setUserLocals` middleware.
 
-A legacy **JWT cookie** flow also exists (used by the `/api/users` endpoints), but the primary login flow and all view-route protection uses sessions.
-
 **Middleware helpers** (`middleware/auth.js`):
 
 | Helper | Usage |
@@ -402,10 +395,7 @@ If `CLOUDINARY_URL` is not set, the server will warn on startup and all upload r
 
 ## Known Issues & Notes
 
-- **`profile.ejs` is a stub** — the page renders but contains no content. User profile editing is handled through the `/api/users/profile` REST API.
-- **Dual auth systems** — `userController.js` (JWT cookies) and `authController.js` (sessions) co-exist. All view-layer protection uses sessions. The JWT endpoints remain for API consumers.
-- **`/auth` routes are mounted twice** in `server.js` — once before and once after the API routes. The duplicate mount is harmless but can be cleaned up.
-- **No middleware enforcement on API routes** — the venue, event, and booking API routes currently have no `requireAdmin` middleware attached at the router level. Admin-only protection is noted in comments only. Adding middleware to those routers is recommended before deploying to production.
+- **No middleware enforcement on API routes** — the venue, event, and booking API routes have no `requireAdmin` middleware at the router level. Admin-only protection on these endpoints relies on controller-level checks. Adding middleware to those routers is recommended before deploying to production.
 - **Enquiry model is named `Enquery`** (typo) throughout the codebase — the collection is explicitly set to `enquiries` in the Mongoose model call, so the data layer is correct.
 
 ---
