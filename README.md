@@ -9,6 +9,7 @@ A full-stack web application for discovering and booking tickets to concerts, sp
 - [Overview](#overview)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
+- [Team Members](#team-members)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
@@ -68,6 +69,20 @@ TicketStream is a ticket-booking platform that lets users browse events, view se
 | Password hashing | bcrypt |
 | File uploads | Multer (memory storage) + Cloudinary |
 | Dev tooling | Nodemon |
+
+---
+
+## Team Members
+
+> Responsibilities were divided by feature area due to time constraints and workload.
+
+| Name | Student Number | Responsibility |
+|---|---|---|
+| Armand Johannes Vermeulen | 602636 | Dashboard, booking pages & booking logic |
+| Chanri Dy Randt | 601635 | Database setup, admin event management pages |
+| Albert Du Plooy | — | Enquiry / contact system |
+| Ntsako Mahole | — | Login & user session management |
+| Lebogang Masia | — | Main public event listing page |
 
 ---
 
@@ -182,7 +197,7 @@ SESSION_SECRET=change_me_to_something_random
 
 ```
 
-> **Tip:** The app will print a warning on startup if `CLOUDINARY_URL` is missing and will exit if `MONGO_URI` or `PORT` are missing.
+> **Tip:** The app will print a warning on startup if `CLOUDINARY_URL` is missing and will exit if `MONGO_URI`, `SESSION_SECRET` or `PORT` are missing.
 
 ---
 
