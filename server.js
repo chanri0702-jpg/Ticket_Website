@@ -1,8 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const session = require('express-session');//for session manag
-const cookieParser = require('cookie-parser');
-require('dotenv').config();//allow env variable use
+const session = require('express-session');
+require('dotenv').config();
 
 // Cloudinary configuration
 const cloudinary = require('cloudinary').v2
@@ -53,7 +52,6 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));//for parsing form data
 app.use(express.static('public'));
-app.use(cookieParser());// for parsing cookies for JWT 
 
 // Session middleware (for login)
 app.use(session({

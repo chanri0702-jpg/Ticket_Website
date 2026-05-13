@@ -187,15 +187,8 @@ async function submitEvent(e) {
 
 function loadEvent(eventId) {
   try {
-    console.log('=== loadEvent called with ID:', eventId);
-    
     const ev = existingEvents.find(e => e._id === eventId);
-    if (!ev) {
-      console.log('Event not found in existingEvents');
-      return;
-    }
-    
-    console.log('Found event:', ev);
+    if (!ev) return;
  
     currentEventId = eventId;
  
@@ -226,12 +219,6 @@ function loadEvent(eventId) {
     const venueSelect = document.getElementById('venueID');
     venueSelect.value = String(venueIdValue);
     
-    // Debug: log to see what's happening
-    console.log('Event venueID:', ev.venueID);
-    console.log('Extracted venueIdValue:', venueIdValue);
-    console.log('Select value set to:', venueSelect.value);
-    console.log('Available options:', Array.from(venueSelect.options).map(opt => opt.value));
-    
     document.getElementById('image').value = ev.image || '';
    
     if (ev.image) {
@@ -253,7 +240,6 @@ function loadEvent(eventId) {
       renderBlockPriceInputs(ev.blockPrices || {});
     }
     
-    console.log('=== loadEvent completed successfully');
   } catch (err) {
     console.error('ERROR in loadEvent:', err);
   }
