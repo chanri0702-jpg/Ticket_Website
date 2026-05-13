@@ -1,28 +1,31 @@
 const Booking = require('../models/booking')
 const Times   = require('../models/times')
 const Event   = require('../models/event')
-const express = require('express');
-const app     = express();
+const auth = require('../middleware/auth')
 
 
-const getDashboardPage = async (req, res) => {
-  try {
-    res.render('dashboard', { user: req.session.user })
-  } catch (err) {
-    console.error(err)
-    res.status(500).send('Error loading user dashboard')
+const getBookingPage = async (req, res) => {
+if  (auth.isAdmin(req.session.user)) {
+    try {
+      return res.redirect('/booking-admin');
+    } catch (err) {
+      return res.status(500).json({ message: 'Failed to load admin booking page', error: err.message });
+    }
+  } else {
+    try {
+      res.render('booking');
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to load user booking page', error: err.message });
+    }
   }
-}
-
-const getAdminDashboardPage = async (req, res) => {
+};
+const getAdminBookingPage = async (req, res) => {
   try {
-    res.render('dashboard-admin', { user: req.session.user })
+    res.render('booking-admin');
   } catch (err) {
-    console.error(err)
-    res.status(500).send('Error loading admin dashboard')
+    res.status(500).json({ message: 'Failed to load admin booking page', error: err.message });
   }
-}
-
+};
 // ─── GET /api/bookings/user/:email ──────────────────────────────────────────
 // Returns all bookings for a user, populated with event details
 const getUserBookings = async (req, res) => {
@@ -275,4 +278,4 @@ const getAdminAnalytics = async (req, res) => {
   }
 }
 
-module.exports = { getUserBookings, createBooking, cancelBooking, getAdminAnalytics, getDashboardPage, getAdminDashboardPage}
+module.exports = { getUserBookings, createBooking, cancelBooking, getAdminAnalytics, getBookingPage, getAdminBookingPage}
