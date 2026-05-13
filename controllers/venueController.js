@@ -31,6 +31,13 @@ const getVenueById = async (req, res) => {
 const createVenue = async (req, res) => {
   try {
     const { name, address1, address2, zip, totalSeats, seatTemplate, layoutImage } = req.body
+    if (seatTemplate && seatTemplate.length > 0) {
+      const rows = {};
+      seatTemplate.forEach(seat => { rows[`${seat.block}_${seat.row}`] = (rows[`${seat.block}_${seat.row}`] || 0) + 1; });
+      if (Object.values(rows).some(count => count > 40)) {
+        return res.status(400).json({ message: 'Seats per row cannot exceed 40.' });
+      }
+    }
     const venue = new Venue({ name, address1, address2, zip, totalSeats, seatTemplate, layoutImage })
     await venue.save()
     res.status(201).json(venue)
@@ -42,6 +49,13 @@ const createVenue = async (req, res) => {
 const updateVenue = async (req, res) => {
   try {
     const { name, address1, address2, zip, totalSeats, seatTemplate, layoutImage } = req.body
+    if (seatTemplate && seatTemplate.length > 0) {
+      const rows = {};
+      seatTemplate.forEach(seat => { rows[`${seat.block}_${seat.row}`] = (rows[`${seat.block}_${seat.row}`] || 0) + 1; });
+      if (Object.values(rows).some(count => count > 40)) {
+        return res.status(400).json({ message: 'Seats per row cannot exceed 40.' });
+      }
+    }
     const updateData = { name, address1, address2, zip, totalSeats, seatTemplate }
     if (layoutImage !== undefined) updateData.layoutImage = layoutImage
     const venue = await Venue.findByIdAndUpdate(

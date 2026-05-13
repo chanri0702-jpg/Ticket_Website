@@ -105,7 +105,7 @@ function createBlockForm(index, blockData = null) {
       <div class="uniform-config" id="uniformConfig_${index}" style="display:${rowType === 'uniform' ? 'block' : 'none'};">
         <div class="form-group">
           <label>Seats per Row *</label>
-          <input type="number" class="uniform-seats" placeholder="e.g. 10" min="1" value="${uniformCount}">
+          <input type="number" class="uniform-seats" placeholder="e.g. 10" min="1" max="40" value="${uniformCount}">
         </div>
       </div>
  
@@ -123,7 +123,7 @@ function renderCustomRows(rows) {
   return rows.map((r, i) => `
     <div class="row-config-item">
       <label>Row ${String.fromCharCode(65 + i)}</label>
-      <input type="number" class="custom-row-seats" placeholder="seats" min="1" value="${r.seats}">
+      <input type="number" class="custom-row-seats" placeholder="seats" min="1" max="40" value="${r.seats}">
     </div>
   `).join('');
 }
@@ -155,7 +155,7 @@ function generateCustomRowInputs(blockIndex, numRows) {
     item.className = 'row-config-item';
     item.innerHTML = `
       <label>Row ${String.fromCharCode(65 + i)}</label>
-      <input type="number" class="custom-row-seats" placeholder="seats" min="1">
+      <input type="number" class="custom-row-seats" placeholder="seats" min="1" max="40">
     `;
     container.appendChild(item);
   }
