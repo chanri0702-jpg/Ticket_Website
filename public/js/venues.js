@@ -204,7 +204,28 @@ async function submitVenue(e) {
     }
   }
  
-  const payload = { name, address1, address2, zip, totalSeats, seatTemplate };
+  // Upload layout image to Cloudinary if a new file was selected
+  let layoutImage = document.getElementById('currentLayoutImage') ? document.getElementById('currentLayoutImage').value : '';
+  const imageFile = document.getElementById('layoutImage').files[0];
+  if (imageFile) {
+    try {
+      const formData = new FormData();
+      formData.append('file', imageFile);
+      const uploadRes = await fetch('/api/upload-image', { method: 'POST', body: formData, credentials: 'include' });
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json();
+        alert('Image upload failed: ' + (err.message || 'Unknown error'));
+        return;
+      }
+      const uploadData = await uploadRes.json();
+      layoutImage = uploadData.url;
+    } catch (err) {
+      alert('Image upload failed: ' + err.message);
+      return;
+    }
+  }
+
+  const payload = { name, address1, address2, zip, totalSeats, seatTemplate, layoutImage };
  
   const isEditing = !!currentVenueId;
   const url = isEditing ? `/api/venues/${currentVenueId}` : '/api/venues';
@@ -254,6 +275,25 @@ function loadVenue(venueId) {
   document.getElementById('address2').value = venue.address2 || '';
   document.getElementById('zip').value = venue.zip || '';
   document.getElementById('totalSeats').value = venue.totalSeats || '';
+
+  // show existing layout image
+  const previewImg = document.getElementById('previewImg');
+  const imagePreview = document.getElementById('imagePreview');
+  let currentHidden = document.getElementById('currentLayoutImage');
+  if (!currentHidden) {
+    currentHidden = document.createElement('input');
+    currentHidden.type = 'hidden';
+    currentHidden.id = 'currentLayoutImage';
+    document.getElementById('venueForm').appendChild(currentHidden);
+  }
+  if (venue.layoutImage) {
+    currentHidden.value = venue.layoutImage;
+    previewImg.src = venue.layoutImage;
+    imagePreview.style.display = 'block';
+  } else {
+    currentHidden.value = '';
+    imagePreview.style.display = 'none';
+  }
  
   // handle seating template
   const hasSeating = venue.seatTemplate && venue.seatTemplate.length > 0;

@@ -105,10 +105,11 @@
             clearFieldErrors();
 
             try {
+                const redirectParam = new URLSearchParams(window.location.search).get('redirect') || '';
                 const response = await fetch('/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ email, password, redirect: redirectParam })
                 });
                 const data = await response.json();
                 

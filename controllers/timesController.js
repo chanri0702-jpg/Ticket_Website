@@ -26,7 +26,12 @@ const getTimesByEvent = async (req, res) => {
 // get single time slot with seat availability
 const getTimeSlotById = async (req, res) => {
   try {
-    const timeSlot = await Times.findById(req.params.id).populate('eventID')
+    const timeSlot = await Times.findById(req.params.id).populate({
+      path: 'eventID',
+      populate: {
+        path: 'venueID'
+      }
+    })
     if (!timeSlot) return res.status(404).json({ message: 'Time slot not found' })
     res.json(timeSlot)
   } catch (err) {
@@ -61,7 +66,7 @@ const getBlockAvailability = async (req, res) => {
 //  create time slot (admin only)
 const createTimeSlot = async (req, res) => {
   try {
-    const { eventID, eventTime, totalSeats, seatsAvailable, price, priceType, blockPrices } = req.body
+    const { eventID, eventTime, totalSeats, seatsAvailable } = req.body
  
     const event = await Event.findById(eventID).populate('venueID')
     if (!event) return res.status(404).json({ message: 'Event not found' })
@@ -83,9 +88,6 @@ const createTimeSlot = async (req, res) => {
       eventTime,
       totalSeats:     totalSeats || (venue ? venue.totalSeats : 0),
       seatsAvailable: seatsAvailable || totalSeats || (venue ? venue.totalSeats : 0),
-      price:          price || 0,
-      priceType:      priceType || 'uniform',
-      blockPrices:    blockPrices || null,
       seats
     })
  

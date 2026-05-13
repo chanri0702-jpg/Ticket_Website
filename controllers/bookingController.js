@@ -5,18 +5,10 @@ const auth = require('../middleware/auth')
 
 
 const getBookingPage = async (req, res) => {
-if  (auth.isAdmin(req.session.user)) {
-    try {
-      return res.redirect('/booking-admin');
-    } catch (err) {
-      return res.status(500).json({ message: 'Failed to load admin booking page', error: err.message });
-    }
-  } else {
-    try {
-      res.render('booking');
-    } catch (err) {
-      res.status(500).json({ message: 'Failed to load user booking page', error: err.message });
-    }
+  try {
+    res.render('booking');
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to load booking page', error: err.message });
   }
 };
 const getAdminBookingPage = async (req, res) => {

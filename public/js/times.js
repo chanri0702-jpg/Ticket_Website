@@ -65,56 +65,7 @@ function getBlocks(venue) {
   if (!venue || !venue.seatTemplate || venue.seatTemplate.length === 0) return [];
   return [...new Set(venue.seatTemplate.map(s => s.block))];
 }
- 
-function togglePricing(type) {
-  document.getElementById('uniformPricing').style.display = type === 'uniform' ? 'block' : 'none';
-  document.getElementById('customPricing').style.display  = type === 'custom'  ? 'block' : 'none';
-  if (type === 'custom') renderBlockPriceInputs();
-}
- 
-function renderBlockPriceInputs(existingPrices = {}) {
-  const container = document.getElementById('blockPriceInputs');
-  container.innerHTML = '';
-  const blocks = getBlocks(currentVenue);
- 
-  if (blocks.length === 0) {
-    container.innerHTML = '<p class="toggle-hint">No blocks available for this event\'s venue.</p>';
-    return;
-  }
- 
-  blocks.forEach(block => {
-    const item = document.createElement('div');
-    item.className = 'row-config-item';
-    item.innerHTML = `
-      <label>${block}</label>
-      <input type="number" class="block-price-input" data-block="${block}"
-        placeholder="R0.00" min="0" step="0.01"
-        value="${existingPrices[block] !== undefined ? existingPrices[block] : ''}">
-    `;
-    container.appendChild(item);
-  });
-}
- 
-function collectPricing() {
-  const priceType = document.querySelector('input[name="priceType"]:checked').value;
-  if (priceType === 'uniform') {
-    const price = parseFloat(document.getElementById('price').value);
-    if (isNaN(price) || price < 0) return null;
-    return { priceType: 'uniform', price, blockPrices: null };
-  } else {
-    const inputs = document.querySelectorAll('.block-price-input');
-    const blockPrices = {};
-    let valid = true;
-    inputs.forEach(input => {
-      const val = parseFloat(input.value);
-      if (isNaN(val) || val < 0) { valid = false; return; }
-      blockPrices[input.dataset.block] = val;
-    });
-    if (!valid || Object.keys(blockPrices).length === 0) return null;
-    return { priceType: 'custom', price: 0, blockPrices };
-  }
-}
- 
+
 async function submitTime(e) {
   e.preventDefault();
  
@@ -130,19 +81,12 @@ async function submitTime(e) {
     alert('Please fill in all required fields.');
     return;
   }
- 
-  const pricing = collectPricing();
-  if (!pricing) {
-    alert('Please complete the pricing configuration.');
-    return;
-  }
- 
+
   const payload = {
     eventID: currentEventId,
     eventTime,
     totalSeats,
-    seatsAvailable: totalSeats,
-    ...pricing
+    seatsAvailable: totalSeats
   };
  
   const isEditing = !!currentTimeId;
@@ -170,9 +114,7 @@ async function submitTime(e) {
 async function loadTime(timeId) {
   const time = allTimes.find(t => t._id === timeId);
   if (!time) return;
- 
-  currentTimeId = timeId;
- 
+
   // sidebar active
   document.querySelectorAll('.venue-list-item').forEach(el => el.classList.remove('active'));
   const activeEl = document.querySelector(`.venue-list-item[data-id="${timeId}"]`);
@@ -193,16 +135,6 @@ async function loadTime(timeId) {
   // venue and blocks
   currentVenue = getVenueForEvent(currentEventId);
  
-  // pricing
-  const priceType = time.priceType || 'uniform';
-  document.querySelector(`input[name="priceType"][value="${priceType}"]`).checked = true;
-  togglePricing(priceType);
-  if (priceType === 'uniform') {
-    document.getElementById('price').value = time.price || '';
-  } else {
-    renderBlockPriceInputs(time.blockPrices || {});
-  }
- 
   // fetch full time slot from API for seat data
   try {
     const res  = await fetch(`/api/times/${timeId}`);
@@ -213,6 +145,7 @@ async function loadTime(timeId) {
     console.error('Could not load seat data', err);
   }
 }
+
  
 function toDatetimeLocal(iso) {
   if (!iso) return '';
@@ -297,6 +230,19 @@ function openReservePanel() {
     select.innerHTML = '<option value="">— Select block —</option>' +
       blocks.map(b => `<option value="${b}">${b}</option>`).join('');
     document.getElementById('seatGrid').innerHTML = '';
+    
+    // Display venue layout image if available
+    if (currentVenue && currentVenue.layoutImage) {
+      const imgContainer = document.createElement('div');
+      imgContainer.style.cssText = 'margin-bottom:1.5rem;text-align:center;';
+      const img = document.createElement('img');
+      img.src = currentVenue.layoutImage;
+      img.alt = currentVenue.name + ' seating layout';
+      img.style.cssText = 'max-width:100%;height:auto;border-radius:.5rem;max-height:400px;';
+      imgContainer.appendChild(img);
+      document.getElementById('seatGrid').parentElement.insertBefore(imgContainer, document.getElementById('seatGrid'));
+    }
+    
     document.getElementById('reservedListSection').style.display = 'none';
   }
  
@@ -307,6 +253,10 @@ function closeReservePanel(e) {
   if (e && e.target !== document.getElementById('reserveOverlay')) return;
   document.getElementById('reserveOverlay').style.display = 'none';
   reservedSeats = [];
+  
+  // Clean up any layout images
+  const layoutImages = document.querySelectorAll('#layoutMode > div:first-child img[alt*="seating layout"]');
+  layoutImages.forEach(img => img.parentElement.remove());
 }
  
 function renderBlockSeats() {
@@ -469,9 +419,6 @@ function resetForm() {
   document.getElementById('deleteBtn').style.display  = 'none';
   document.getElementById('reserveSection').style.display = 'none';
   document.getElementById('seatsPanel').innerHTML     = '<p class="toggle-hint">Save the time slot first, then manage seats.</p>';
-  document.getElementById('uniformPricing').style.display = 'block';
-  document.getElementById('customPricing').style.display  = 'none';
-  document.getElementById('blockPriceInputs').innerHTML   = '';
   document.querySelectorAll('.venue-list-item').forEach(el => el.classList.remove('active'));
  
   // set venue for current event

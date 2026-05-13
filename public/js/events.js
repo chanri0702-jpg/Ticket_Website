@@ -1,12 +1,17 @@
 let currentEventId = null;
 let eventToDelete = null;
 let currentBlocks = []; // blocks from selected venue
- 
-document.getElementById('image').addEventListener('input', function () {
-  const val = this.value.trim();
-  if (val) {
-    document.getElementById('previewImg').src = val;
-    document.getElementById('imagePreview').style.display = 'block';
+
+// Handle image file selection and preview
+document.getElementById('imageFile').addEventListener('change', function () {
+  const file = this.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      document.getElementById('previewImg').src = e.target.result;
+      document.getElementById('imagePreview').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
   } else {
     document.getElementById('imagePreview').style.display = 'none';
   }
@@ -86,7 +91,7 @@ async function submitEvent(e) {
   const host        = document.getElementById('host').value.trim();
   const category    = document.getElementById('category').value;
   const venueID     = document.getElementById('venueID').value;
-  const image       = document.getElementById('image').value.trim();
+  const imageFile   = document.getElementById('imageFile').files[0];
  
   if (!name || !category || !venueID) {
     alert('Please fill in all required fields.');
@@ -98,6 +103,36 @@ async function submitEvent(e) {
     alert('Please complete the pricing configuration.');
     return;
   }
+
+  let imageUrl = '';
+  
+  // Upload image to Cloudinary if file selected
+  if (imageFile) {
+    const formData = new FormData();
+    formData.append('file', imageFile);
+    
+    try {
+      const uploadRes = await fetch('/api/upload-image', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+      
+      const uploadData = await uploadRes.json();
+      if (uploadRes.ok) {
+        imageUrl = uploadData.url;
+      } else if (uploadRes.status === 403) {
+        alert('You must be logged in as an admin to upload images. Please make sure you are logged in.');
+        return;
+      } else {
+        alert('Image upload failed: ' + (uploadData.message || 'Unknown error'));
+        return;
+      }
+    } catch (err) {
+      alert('Error uploading image: ' + err.message);
+      return;
+    }
+  }
  
   const payload = {
     name,
@@ -105,7 +140,7 @@ async function submitEvent(e) {
     host,
     category,
     venueID,
-    image,
+    image: imageUrl,
     price: pricing.type === 'uniform' ? pricing.price : 0,
     blockPrices: pricing.type === 'custom' ? pricing.blockPrices : null,
     priceType: pricing.type
@@ -135,49 +170,76 @@ async function submitEvent(e) {
  
 
 function loadEvent(eventId) {
-  const ev = existingEvents.find(e => e._id === eventId);
-  if (!ev) return;
+  try {
+    console.log('=== loadEvent called with ID:', eventId);
+    
+    const ev = existingEvents.find(e => e._id === eventId);
+    if (!ev) {
+      console.log('Event not found in existingEvents');
+      return;
+    }
+    
+    console.log('Found event:', ev);
  
-  currentEventId = eventId;
+    currentEventId = eventId;
  
-  // sidebar active state
-  document.querySelectorAll('.venue-list-item').forEach(el => el.classList.remove('active'));
-  const activeItem = document.querySelector(`.venue-list-item[data-id="${eventId}"]`);
-  if (activeItem) activeItem.classList.add('active');
+    // sidebar active state
+    document.querySelectorAll('.venue-list-item').forEach(el => el.classList.remove('active'));
+    const activeItem = document.querySelector(`.venue-list-item[data-id="${eventId}"]`);
+    if (activeItem) activeItem.classList.add('active');
  
-  // header and buttons
-  document.getElementById('formTitle').textContent = ev.name;
-  document.getElementById('formSubtitle').textContent = `${ev.category} · ${ev.host || ''}`;
-  document.getElementById('submitBtn').textContent = 'Update Event';
-  document.getElementById('clearBtn').style.display = 'none';
-  document.getElementById('deleteBtn').style.display = 'block';
+    // header and buttons
+    document.getElementById('formTitle').textContent = ev.name;
+    document.getElementById('formSubtitle').textContent = `${ev.category} · ${ev.host || ''}`;
+    document.getElementById('submitBtn').textContent = 'Update Event';
+    document.getElementById('clearBtn').style.display = 'none';
+    document.getElementById('deleteBtn').style.display = 'block';
  
-  // fill fields
-  document.getElementById('eventId').value  = eventId;
-  document.getElementById('name').value        = ev.name || '';
-  document.getElementById('description').value = ev.description || '';
-  document.getElementById('host').value        = ev.host || '';
-  document.getElementById('category').value    = ev.category || '';
-  document.getElementById('venueID').value     = ev.venueID || '';
-  document.getElementById('image').value       = ev.image || '';
- 
-  if (ev.image) {
-    document.getElementById('previewImg').src = ev.image;
-    document.getElementById('imagePreview').style.display = 'block';
-  }
- 
-  // load venue blocks
-  onVenueChange();
- 
-  // set pricing
-  const priceType = ev.priceType || 'uniform';
-  document.querySelector(`input[name="priceType"][value="${priceType}"]`).checked = true;
-  togglePricing(priceType);
- 
-  if (priceType === 'uniform') {
-    document.getElementById('price').value = ev.price || '';
-  } else {
-    renderBlockPriceInputs(ev.blockPrices || {});
+    // fill fields
+    document.getElementById('eventId').value  = eventId;
+    document.getElementById('name').value        = ev.name || '';
+    document.getElementById('description').value = ev.description || '';
+    document.getElementById('host').value        = ev.host || '';
+    document.getElementById('category').value    = ev.category || '';
+    
+    // Handle venueID - it might be an object (populated) or a string ID
+    let venueIdValue = '';
+    if (ev.venueID) {
+      venueIdValue = typeof ev.venueID === 'object' ? (ev.venueID._id || ev.venueID) : ev.venueID;
+    }
+    const venueSelect = document.getElementById('venueID');
+    venueSelect.value = String(venueIdValue);
+    
+    // Debug: log to see what's happening
+    console.log('Event venueID:', ev.venueID);
+    console.log('Extracted venueIdValue:', venueIdValue);
+    console.log('Select value set to:', venueSelect.value);
+    console.log('Available options:', Array.from(venueSelect.options).map(opt => opt.value));
+    
+    document.getElementById('image').value = ev.image || '';
+   
+    if (ev.image) {
+      document.getElementById('previewImg').src = ev.image;
+      document.getElementById('imagePreview').style.display = 'block';
+    }
+   
+    // load venue blocks
+    onVenueChange();
+   
+    // set pricing
+    const priceType = ev.priceType || 'uniform';
+    document.querySelector(`input[name="priceType"][value="${priceType}"]`).checked = true;
+    togglePricing(priceType);
+   
+    if (priceType === 'uniform') {
+      document.getElementById('price').value = ev.price || '';
+    } else {
+      renderBlockPriceInputs(ev.blockPrices || {});
+    }
+    
+    console.log('=== loadEvent completed successfully');
+  } catch (err) {
+    console.error('ERROR in loadEvent:', err);
   }
 }
  

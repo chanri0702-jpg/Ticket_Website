@@ -71,4 +71,28 @@ const deleteEvent = async (req, res) => {
   }
 }
 
-module.exports = { getEventsPage, getAllEvents, getEventById, createEvent, updateEvent, deleteEvent }
+// Upload image to Cloudinary
+const uploadImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file provided' })
+    }
+    const cloudinary = require('cloudinary').v2
+    const b64 = Buffer.from(req.file.buffer).toString('base64')
+    const dataURI = 'data:' + req.file.mimetype + ';base64,' + b64
+    const result = await cloudinary.uploader.upload(dataURI, {
+      folder: 'ticketstream/events',
+      resource_type: 'auto',
+      quality: 'auto'
+    })
+
+    res.json({ 
+      url: result.secure_url,
+      message: 'Image uploaded successfully'
+    })
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to upload image', error: err.message })
+  }
+}
+
+module.exports = { getEventsPage, getAllEvents, getEventById, createEvent, updateEvent, deleteEvent, uploadImage }

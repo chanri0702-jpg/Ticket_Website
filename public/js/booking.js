@@ -4,6 +4,10 @@ const API = '/api'
 const $ = id => document.getElementById(id)
 const fmt = n => 'R ' + Number(n).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const fmtDate = d => new Date(d).toLocaleString('en-ZA', { dateStyle: 'medium', timeStyle: 'short' })
+const getUrlParam = name => {
+  const params = new URLSearchParams(window.location.search)
+  return params.get(name)
+}
 
 function toast(msg, type = 'success') {
   const t = $('toast')
@@ -39,8 +43,33 @@ async function initBookingTab() {
       opt.textContent = e.name
       opt.dataset.price = e.price
       opt.dataset.host  = e.host || '—'
+      opt.dataset.image = e.image || ''
       sel.appendChild(opt)
     })
+    
+    // Pre-fill event if coming from view-event page
+    const eventId = getUrlParam('eventId')
+    const timeId = getUrlParam('timeId')
+    if (eventId) {
+      // Make sure the option exists
+      const option = Array.from(sel.options).find(o => o.value === eventId)
+      if (option) {
+        sel.value = eventId
+        await onEventChange()
+        
+        // Pre-fill time if provided
+        if (timeId) {
+          // Wait a moment for times to load
+          await new Promise(r => setTimeout(r, 100))
+          const timeSel = $('book-time')
+          const timeOption = Array.from(timeSel.options).find(o => o.value === timeId)
+          if (timeOption) {
+            timeSel.value = timeId
+            await onTimeChange()
+          }
+        }
+      }
+    }
   } catch { toast('Could not load events', 'error') }
 }
 
@@ -48,7 +77,13 @@ async function onEventChange() {
   const sel   = $('book-event')
   const opt   = sel.options[sel.selectedIndex]
   const evId  = sel.value
-  currentEvent = evId ? { id: evId, price: +opt.dataset.price, host: opt.dataset.host, name: opt.textContent } : null
+  currentEvent = evId ? { 
+    id: evId, 
+    price: +opt.dataset.price, 
+    host: opt.dataset.host, 
+    name: opt.textContent,
+    image: opt.dataset.image
+  } : null
 
   // Reset time slot
   const tSel = $('book-time')
@@ -106,7 +141,13 @@ async function onTimeChange() {
         blockSel.appendChild(o)
       })
       $('block-selector').style.display = 'block'
-      $('seat-map-inner').innerHTML = '<div class="empty-state"><p>Select a block above to view its seats.</p></div>'
+      // Auto-select first block and render it
+      if (blocks.length > 0) {
+        blockSel.value = blocks[0]
+        renderSeatMap(currentTimeSlot.seats.filter(s => s.block === blocks[0]))
+      } else {
+        $('seat-map-inner').innerHTML = '<div class="empty-state"><p>No seats available in any block.</p></div>'
+      }
     } else {
       renderSeatMap(currentTimeSlot.seats || [])
     }
@@ -133,10 +174,37 @@ function renderSeatMap(seats) {
   const container = $('seat-map-inner')
   container.innerHTML = ''
 
+  // Display venue layout image if available
+  if (currentTimeSlot && currentTimeSlot.eventID) {
+    const event = currentTimeSlot.eventID
+    let venue = null
+    
+    // Handle nested populate: eventID could have venueID
+    if (event.venueID) {
+      venue = typeof event.venueID === 'object' ? event.venueID : null
+    }
+    
+    console.log('[BookingDebug] currentTimeSlot.eventID:', event)
+    console.log('[BookingDebug] venue:', venue)
+    console.log('[BookingDebug] venue.layoutImage:', venue ? venue.layoutImage : 'NO VENUE')
+    
+    if (venue && venue.layoutImage) {
+      const imgContainer = document.createElement('div')
+      imgContainer.style.cssText = 'margin-bottom:1.5rem;text-align:center;'
+      const img = document.createElement('img')
+      img.src = venue.layoutImage
+      img.alt = (venue.name || 'Venue') + ' seating layout'
+      img.style.cssText = 'max-width:100%;height:auto;border-radius:.5rem;max-height:400px;'
+      img.onerror = () => { imgContainer.remove() }
+      imgContainer.appendChild(img)
+      container.appendChild(imgContainer)
+    }
+  }
+
   const now = new Date()
 
   if (Object.keys(rows).length === 0) {
-    container.innerHTML = '<div class="empty-state"><p>No seats found in this block.</p></div>'
+    container.innerHTML += '<div class="empty-state"><p>No seats found in this block.</p></div>'
     return
   }
 
@@ -419,18 +487,6 @@ function renderChart(data) {
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
-initBookingTab().then(async () => {
-  const params  = new URLSearchParams(window.location.search)
-  const eventId = params.get('eventId')
-  const timeId  = params.get('timeId')
-  if (!eventId) return
-
-  const sel = $('book-event')
-  sel.value = eventId
-  await onEventChange()
-
-  if (!timeId) return
-  const tSel = $('book-time')
-  tSel.value = timeId
-  await onTimeChange()
+window.addEventListener('DOMContentLoaded', () => {
+  initBookingTab()
 })

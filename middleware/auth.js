@@ -18,13 +18,18 @@ const requireAuth = (req, res, next) => {
     if (req.session.user) {
         return next();
     }
-    res.redirect('/login');
+    const returnTo = encodeURIComponent(req.originalUrl);
+    res.redirect('/auth/login?redirect=' + returnTo);
 };
 
 // Middleware to protect admin-only routes
 const requireAdmin = (req, res, next) => {
     if (req.session.user && isAdmin(req.session.user)) {
         return next();
+    }
+    // Check if it's an API request - return JSON
+    if (req.path.startsWith('/api/')) {
+        return res.status(403).json({ message: 'Admin access required' });
     }
     res.status(403).send('Admin access required');
 };

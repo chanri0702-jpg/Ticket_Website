@@ -4,6 +4,29 @@ const session = require('express-session');//for session manag
 const cookieParser = require('cookie-parser');
 require('dotenv').config();//allow env variable use
 
+// Cloudinary configuration
+const cloudinary = require('cloudinary').v2
+if (process.env.CLOUDINARY_URL) {
+  cloudinary.config({ url: process.env.CLOUDINARY_URL })
+} else {
+  console.warn('CLOUDINARY_URL is not set in .env file. Image uploads will not work.');
+}
+
+// Multer for file uploads (memory storage for Cloudinary)
+const multer = require('multer')
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp']
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true)
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG, and WebP are allowed.'))
+    }
+  }
+})
+
 
 //controllers
 const venueController = require('./controllers/venueController')//controller for venue page route
@@ -76,6 +99,9 @@ app.use('/api/venues',require('./routes/venueRoutes'));
 app.use('/api/times',require('./routes/timesRoutes'));
 app.use('/api/bookings',require('./routes/bookingRoutes'));
 app.use('/api/enquiries',require('./routes/enqueryRoutes'));
+
+// Image upload endpoint
+app.post('/api/upload-image', requireAdmin, upload.single('file'), eventController.uploadImage);
 
 
 //------------------------View Routes-------------------------

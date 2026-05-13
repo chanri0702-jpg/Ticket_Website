@@ -28,7 +28,7 @@ const sendError = (res, status, message, field = null) => {
 // Show login page
 const getLogin = (req, res) => {
     if (req.session.user) return res.redirect('/');
-    res.render('login', { error: null, formData: {} });
+    res.render('login', { error: null, formData: {}, redirect: req.query.redirect || '' });
 };
 
 // Handle login
@@ -80,10 +80,11 @@ const postLogin = async (req, res) => {
         };
         
         // Successful login
+        const redirectTo = req.body.redirect || req.query.redirect || '/';
         return res.json({
             success: true,
             message: 'Login successful',
-            redirect: '/'
+            redirect: redirectTo
         });
         
     } catch (error) {
