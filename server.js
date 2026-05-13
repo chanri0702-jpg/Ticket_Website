@@ -135,11 +135,11 @@ app.get('/view-event', async (req, res) => {
 app.get('/contact', (req, res) => res.render('contact'));
 app.get('/login', (req, res) => res.render('login'));
 app.get('/enquiries', (req, res) => res.render('enquiries'));
-app.get('/booking', requireAuth, (req, res) => res.render('booking', { user: req.session.user }))//booking page with auth check
 
 //protected user path
 app.get('/profile',   requireAuth, (req, res) => res.render('profile', { user: req.session.user }))
-app.get('/dashboard', requireAuth, bookingController.getDashboardPage);
+app.get('/booking', requireAuth, bookingController.getBookingPage);
+
 
 app.get('/events', eventController.getEventsPage)
 app.get('/times-admin', timesController.getTimesPage)
@@ -149,8 +149,7 @@ app.get('/times-admin', timesController.getTimesPage)
 app.get('/venues', requireAdmin, venueController.getVenuesPage);
 app.get('/events', requireAdmin, eventController.getEventsPage);
 app.get('/times-admin', requireAdmin, timesController.getTimesPage);
-app.get('/dashboard-admin', requireAdmin, bookingController.getAdminDashboardPage);
-
+app.get('/booking-admin', requireAdmin, bookingController.getAdminBookingPage);
 //database start
 mongoose.connect(uri)
   .then(() => console.log("Connected to MongoDB"))
