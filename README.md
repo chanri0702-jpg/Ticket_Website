@@ -80,9 +80,9 @@ TicketStream is a ticket-booking platform that lets users browse events, view se
 |---|---|---|
 | Armand Johannes Vermeulen | 602636 | Dashboard, booking pages & booking logic |
 | Chanri Dy Randt | 601635 | Database setup, admin event management pages |
-| Albert Du Plooy | — | Enquiry / contact system |
-| Ntsako Mahole | — | Login & user session management |
-| Lebogang Masia | — | Main public event listing page |
+| Albert Du Plooy | 601969 | Enquiry / contact system |
+| Ntsako Mahole | 603264 | Login & user session management |
+| Lebogang Masia | 601562 | Main public event listing page |
 
 ---
 
