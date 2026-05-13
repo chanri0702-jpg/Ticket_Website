@@ -46,6 +46,14 @@ const createBooking = async (req, res) => {
 
     const event = await Event.findById(eventID)
     if (!event)   return res.status(404).json({ message: 'Event not found' })
+    
+    const eventTime = new Date(timeSlot.eventTime)
+    const now = new Date()
+    if (eventTime < now) {
+      return res.status(400).json({ 
+        message: 'This event has already started. Booking is no longer available.' 
+      })
+    }
 
     // Capacity check (applies to both assigned and GA venues)
     if (timeSlot.seatsAvailable < seats.length) {
@@ -54,7 +62,6 @@ const createBooking = async (req, res) => {
       })
     }
 
-    const now         = new Date()
     let   lockedSeats = []
 
     if (isGeneralAdmission || !timeSlot.seats || timeSlot.seats.length === 0) {

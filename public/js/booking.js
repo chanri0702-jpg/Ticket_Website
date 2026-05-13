@@ -9,6 +9,10 @@ const getUrlParam = name => {
   return params.get(name)
 }
 
+function isPastEvent(eventTime) {
+  return new Date(eventTime) < new Date()
+}
+
 function toast(msg, type = 'success') {
   const t = $('toast')
   t.textContent = msg
@@ -120,12 +124,29 @@ async function onTimeChange() {
   blockSel.innerHTML = '<option value="">— choose a block —</option>'
   $('block-selector').style.display = 'none'
   $('seat-map-inner').innerHTML = '<div class="empty-state"><p>Select an event and time slot to view the seat map.</p></div>'
+  const msgEl = $('ti-msg')
+  if (msgEl) {
+    msgEl.textContent = ''
+    msgEl.style.display = 'none'
+  }
 
   if (!timeId) { $('time-info').style.display = 'none'; return }
 
   try {
     const res  = await fetch(`${API}/times/${timeId}`)
     currentTimeSlot = await res.json()
+
+    if (isPastEvent(currentTimeSlot.eventTime)) {
+      $('ti-avail').textContent = '—'
+      $('ti-total').textContent = '—'
+      if (msgEl) {
+        msgEl.textContent = 'This event has already passed. Booking is closed.'
+        msgEl.style.display = 'block'
+      }
+      $('time-info').style.display = 'flex'
+      return
+    }
+
     $('ti-avail').textContent = currentTimeSlot.seatsAvailable
     $('ti-total').textContent = currentTimeSlot.totalSeats
     $('time-info').style.display = 'flex'
