@@ -2,7 +2,13 @@ const Enquery = require('../models/enquery')
 
 const createQuery = async (req, res) => {
   try {
-    const query = new Enquery(req.body)
+    const { email, subject, message } = req.body
+
+    if (!email || !subject || !message) {
+      return res.status(400).json({ message: 'email, subject, and message are required' })
+    }
+
+    const query = new Enquery({ email, subject, message })
     await query.save()
     res.status(201).json(query)
   } catch (err) {

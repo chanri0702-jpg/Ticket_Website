@@ -16,7 +16,6 @@ const getTimesPage = async (req, res) => {
 const getTimesByEvent = async (req, res) => {
   try {
     const times = await Times.find({ eventID: req.params.eventID })
-    if (!times.length) return res.status(404).json({ message: 'No time slots found' })
     res.json(times)
   } catch (err) {
     res.status(500).json({ message: 'Failed to get time slots', error: err.message })
@@ -101,7 +100,7 @@ const createTimeSlot = async (req, res) => {
 // update time slot
 const updateTimeSlot = async (req, res) => {
   try {
-    const timeSlot = await Times.findByIdAndUpdate(req.params.id, req.body, { new: true })
+    const timeSlot = await Times.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
     if (!timeSlot) return res.status(404).json({ message: 'Time slot not found' })
     res.json(timeSlot)
   } catch (err) {

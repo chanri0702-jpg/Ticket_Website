@@ -47,6 +47,11 @@ if (!port) {
   console.error("PORT is not defined in .env file");
   process.exit(1);
 }
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret) {
+  console.error("SESSION_SECRET is not defined in .env file");
+  process.exit(1);
+}
 
 const app = express();
 app.use(express.json());
@@ -55,7 +60,7 @@ app.use(express.static('public'));
 
 // Session middleware (for login)
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'ticketstream-secret-key',
+  secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
   cookie: { 
@@ -139,6 +144,7 @@ app.get('/view-event', async (req, res) => {
   try {
     const { id } = req.query;
     if (!id) return res.redirect('/');
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).send('Invalid event ID');
     const event = await Event.findById(id).populate('venueID').lean(); //get event and venue details
     if (!event) return res.status(404).send('Event not found');
     const timeSlots = await Times.find({ eventID: id }).sort({ eventTime: 1 }).lean();//get time slots for event
@@ -165,13 +171,12 @@ app.get('/times-admin', requireAdmin, timesController.getTimesPage)
 app.get('/venues', requireAdmin, venueController.getVenuesPage);
 app.get('/booking-admin', requireAdmin, bookingController.getAdminBookingPage);
 app.get('/enquiries', requireAdmin, (req, res) => res.render('enquiries'));
-//database start
+//database start — start server only after DB connection is established
 mongoose.connect(uri)
-  .then(() => console.log("Connected to MongoDB"))
-  .catch(err => {console.error("Could not connect to MongoDB", err);process.exit(1);});
-
-
-//start server node.js
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
+  .then(() => {
+    console.log("Connected to MongoDB");
+    app.listen(port, () => {
+      console.log(`Server is running on port ${port}`);
+    });
+  })
+  .catch(err => { console.error("Could not connect to MongoDB", err); process.exit(1); });

@@ -50,7 +50,7 @@ const updateEvent = async (req, res) => {
     const event = await Event.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true } // returns updated document instead of old one
+      { new: true, runValidators: true }
     )
     if (!event) return res.status(404).json({ message: 'Event not found' })
     res.json(event)

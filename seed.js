@@ -26,8 +26,7 @@ async function seedAdmin() {
             console.log('   Role: Administrator\n');
         } else {
             console.log('\n⚠️ Admin user already exists');
-            console.log('   Email: admin@ticketstream.com');
-            console.log('   Password: admin123\n');
+            console.log('   Email: admin@ticketstream.com\n');
         }
         
         await mongoose.disconnect();
