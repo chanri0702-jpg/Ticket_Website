@@ -39,6 +39,7 @@ TicketStream is a ticket-booking platform that lets users browse events, view se
 - View event detail pages with upcoming show times and seat availability
 - Interactive seat map with block-level navigation and real-time seat status
 - Book one or multiple seats and receive a booking confirmation
+- **General Admission** support — venues without an assigned seating layout show a quantity picker instead of a seat map
 - View and cancel existing bookings by email
 - Submit support enquiries via a contact form
 
@@ -102,14 +103,13 @@ Ticket_Website/
 │   └── venueRoutes.js
 │
 ├── Views/
-│   ├── partials/
-│   │   ├── header.ejs          # Navbar with role-based links
-│   │   └── footer.ejs
 │   ├── booking.ejs             # User booking + history
 │   ├── booking-admin.ejs       # Admin booking dashboard
 │   ├── contact.ejs             # Contact / enquiry form
 │   ├── enquiries.ejs           # Admin enquiry management
 │   ├── events.ejs              # Admin event management
+│   ├── footer.ejs
+│   ├── header.ejs              # Navbar with role-based links
 │   ├── index.ejs               # Public event listing
 │   ├── login.ejs
 │   ├── register.ejs
@@ -176,7 +176,7 @@ PORT=3000
 CLOUDINARY_URL=cloudinary://<api_key>:<api_secret>@<cloud_name>
 
 # Session secret — used by express-session in server.js
-# Falls back to 'ticketstream-secret-key' if not set
+# Required — the server will exit with an error if this is missing
 SESSION_SECRET=change_me_to_something_random
 
 
@@ -311,7 +311,7 @@ All API routes are prefixed with `/api`.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/api/enquiries` | Public | Submit a new enquiry |
+| POST | `/api/enquiries` | Auth | Submit a new enquiry |
 | GET | `/api/enquiries/user/:email` | Auth | Get enquiries by email |
 | GET | `/api/enquiries` | Admin | Get all enquiries |
 | PUT | `/api/enquiries/:id` | Admin | Respond to / update enquiry status |
@@ -395,7 +395,6 @@ If `CLOUDINARY_URL` is not set, the server will warn on startup and all upload r
 
 ## Known Issues & Notes
 
-- **No middleware enforcement on API routes** — the venue, event, and booking API routes have no `requireAdmin` middleware at the router level. Admin-only protection on these endpoints relies on controller-level checks. Adding middleware to those routers is recommended before deploying to production.
 - **Enquiry model is named `Enquery`** (typo) throughout the codebase — the collection is explicitly set to `enquiries` in the Mongoose model call, so the data layer is correct.
 
 ---
