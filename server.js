@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');//for session manag
+const cookieParser = require('cookie-parser');
 require('dotenv').config();//allow env variable use
 
 
@@ -8,6 +9,7 @@ require('dotenv').config();//allow env variable use
 const venueController = require('./controllers/venueController')//controller for venue page route
 const eventController = require('./controllers/eventController')
 const timesController = require('./controllers/timesController')
+const userController = require('./controllers/userController')
 
 //middleware
 const { requireAuth, requireAdmin, setUserLocals } = require('./middleware/auth')
@@ -28,6 +30,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));//for parsing form data
 app.use(express.static('public'));
+app.use(cookieParser());// for parsing cookies for JWT 
 
 // Session middleware (for login)
 app.use(session({
@@ -45,12 +48,6 @@ app.set('views', './Views');
 
 // make user available in all EJS views
 app.use(setUserLocals)
-
-//setup
-const app = express();
-app.use(express.json());
-app.use(express.static('public'));
-app.use(cookieParser());// for parsing cookies for JWT 
 
 //request logging middleware
 app.use((req, res, next) => {
@@ -83,7 +80,6 @@ app.use('/api/enqueries',require('./routes/enqueryRoutes'));
 //------------------------View Routes-------------------------
 app.post('/api/users/login',  userController.login)
 app.post('/api/users/logout', userController.logout)
-app.use('/profile', requireAuth, viewController.getProfilePage)
 
 // Home – event listing with search / filter
 app.get('/', async (req, res) => {
@@ -152,28 +148,10 @@ app.get('/venues', requireAdmin, venueController.getVenuesPage);
 app.get('/events', requireAdmin, eventController.getEventsPage);
 app.get('/times-admin', requireAdmin, timesController.getTimesPage);
 
-if (user.role === 'admin') {
-  res.redirect('/events') // admin goes to event management
-} else {
-  res.redirect('/dashboard') // regular user goes to dashboard
-}
-
 // ─── database start ────────────────────────────────────────────────────────
 mongoose.connect(uri)
   .then(() => console.log("Connected to MongoDB"))
   .catch(err => {console.error("Could not connect to MongoDB", err);process.exit(1);});
-
-
-  /* // Times management page – fetch all events for dropdown
-app.get('/times', async (req, res) => {
-  try {
-    const events = await Event.find().lean();
-    res.render('times', { events });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Error loading times page');
-  }
-}); */
 
 
 //start server node.js
