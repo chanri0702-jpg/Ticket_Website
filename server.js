@@ -10,6 +10,7 @@ const venueController = require('./controllers/venueController')//controller for
 const eventController = require('./controllers/eventController')
 const timesController = require('./controllers/timesController')
 const userController = require('./controllers/userController')
+const bookingController = require('./controllers/bookingController')
 
 //middleware
 const { requireAuth, requireAdmin, setUserLocals } = require('./middleware/auth')
@@ -74,7 +75,7 @@ app.use('/api/events',require('./routes/eventRoutes'));
 app.use('/api/venues',require('./routes/venueRoutes'));
 app.use('/api/times',require('./routes/timesRoutes'));
 app.use('/api/bookings',require('./routes/bookingRoutes'));
-app.use('/api/enqueries',require('./routes/enqueryRoutes'));
+app.use('/api/enquiries',require('./routes/enqueryRoutes'));
 
 
 //------------------------View Routes-------------------------
@@ -132,23 +133,25 @@ app.get('/view-event', async (req, res) => {
 
 // Auth / misc pages
 app.get('/contact', (req, res) => res.render('contact'));
-app.get('/booking', (req, res) => res.render('booking'));
 app.get('/login', (req, res) => res.render('login'));
+app.get('/enquiries', (req, res) => res.render('enquiries'));
+app.get('/booking', requireAuth, (req, res) => res.render('booking', { user: req.session.user }))//booking page with auth check
 
 //protected user path
 app.get('/profile',   requireAuth, (req, res) => res.render('profile', { user: req.session.user }))
-app.get('/dashboard', requireAuth, (req, res) => res.render('dashboard', { user: req.session.user }))
+app.get('/dashboard', requireAuth, bookingController.getDashboardPage);
 
 app.get('/events', eventController.getEventsPage)
 app.get('/times-admin', timesController.getTimesPage)
 
 
-// admin routes
+//admin routes
 app.get('/venues', requireAdmin, venueController.getVenuesPage);
 app.get('/events', requireAdmin, eventController.getEventsPage);
 app.get('/times-admin', requireAdmin, timesController.getTimesPage);
+app.get('/dashboard-admin', requireAdmin, bookingController.getAdminDashboardPage);
 
-// ─── database start ────────────────────────────────────────────────────────
+//database start
 mongoose.connect(uri)
   .then(() => console.log("Connected to MongoDB"))
   .catch(err => {console.error("Could not connect to MongoDB", err);process.exit(1);});

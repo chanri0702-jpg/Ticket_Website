@@ -22,6 +22,7 @@ usage) -->
 <div class="tab-bar">
   <button class="tab active" onclick="switchTab('book')">Book Tickets</button>
   <button class="tab" onclick="switchTab('history')">My Bookings</button>
+  <button class="tab" onclick="switchTab('admin')">Admin Dashboard</button>
 </div>
 
 <!-- ═══════════════════════ TOAST ════════════════════════════════════════ -->
@@ -129,6 +130,63 @@ usage) -->
         <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
       </svg>
       <p>Enter your email above to view your bookings.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     TAB 3 — ADMIN DASHBOARD
+════════════════════════════════════════════════════════════════════════ -->
+<div id="tab-admin" class="page">
+  <h1 class="page-title">Admin Dashboard</h1>
+  <p class="page-subtitle">Analytics, capacity usage, and booking insights.</p>
+
+  <button class="btn btn-outline" style="margin-bottom:1.5rem" onclick="loadAnalytics()">
+    ↻ Refresh Data
+  </button>
+
+  <!-- Stat cards -->
+  <div class="grid-3" id="stat-cards" style="margin-bottom:1.5rem">
+    <div class="stat-card red">
+      <div class="stat-label">Total Bookings</div>
+      <div class="stat-value" id="stat-bookings">—</div>
+      <div class="stat-sub">All time</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">Tickets Sold</div>
+      <div class="stat-value" id="stat-tickets">—</div>
+      <div class="stat-sub">Individual seats</div>
+    </div>
+    <div class="stat-card gold">
+      <div class="stat-label">Total Revenue</div>
+      <div class="stat-value" id="stat-revenue">—</div>
+      <div class="stat-sub">Gross earnings</div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:1.5rem">
+    <!-- Popular events -->
+    <div class="card">
+      <h2 class="card-title">Popular Events</h2>
+      <div id="popular-events-list">
+        <div class="loader"></div>
+      </div>
+    </div>
+
+    <!-- Bookings over time -->
+    <div class="card">
+      <h2 class="card-title">Bookings — Last 30 Days</h2>
+      <div id="chart-container">
+        <div class="loader"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Capacity usage -->
+  <div class="card">
+    <h2 class="card-title">Capacity Usage by Time Slot</h2>
+    <div id="capacity-list">
+      <div class="loader"></div>
     </div>
   </div>
 </div>

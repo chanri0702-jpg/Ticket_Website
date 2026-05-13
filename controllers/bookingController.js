@@ -1,6 +1,27 @@
 const Booking = require('../models/booking')
 const Times   = require('../models/times')
 const Event   = require('../models/event')
+const express = require('express');
+const app     = express();
+
+
+const getDashboardPage = async (req, res) => {
+  try {
+    res.render('dashboard', { user: req.session.user })
+  } catch (err) {
+    console.error(err)
+    res.status(500).send('Error loading user dashboard')
+  }
+}
+
+const getAdminDashboardPage = async (req, res) => {
+  try {
+    res.render('dashboard-admin', { user: req.session.user })
+  } catch (err) {
+    console.error(err)
+    res.status(500).send('Error loading admin dashboard')
+  }
+}
 
 // ─── GET /api/bookings/user/:email ──────────────────────────────────────────
 // Returns all bookings for a user, populated with event details
@@ -254,4 +275,4 @@ const getAdminAnalytics = async (req, res) => {
   }
 }
 
-module.exports = { getUserBookings, createBooking, cancelBooking, getAdminAnalytics }
+module.exports = { getUserBookings, createBooking, cancelBooking, getAdminAnalytics, getDashboardPage, getAdminDashboardPage}
