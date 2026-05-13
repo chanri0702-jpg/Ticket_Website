@@ -71,7 +71,8 @@ const Event = require('./models/event');
 const Times = require('./models/times');
 
 //------------------------------routes-------------------------------
-//app.use('/api/users',require('./routes/userRoutes'));
+app.use('/auth', require('./routes/authRoutes'));
+app.use('/api/users',require('./routes/userRoutes'));
 app.use('/api/events',require('./routes/eventRoutes'));
 app.use('/api/venues',require('./routes/venueRoutes'));
 app.use('/api/times',require('./routes/timesRoutes'));
