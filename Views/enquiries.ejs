@@ -3,13 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enquiries page</title>
-    <link rel="stylesheet" href="/css/index.css">
+    <title>Admin - Manage Enquiries</title>
     <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/contact.css">
+    <link rel="stylesheet" href="/css/index.css">
 </head>
 <body>
     <%- include('partials/header') %>
-    <H1>Code here</H1>
+
+    <div class="contact-container" style="max-width: 1000px;">
+        <h2>Manage User Enquiries</h2>
+        <div id="adminQueriesArea">
+            <p style="text-align: center; color: var(--light-text);">Loading enquiries...</p>
+        </div>
+    </div>
+
     <%- include('partials/footer') %>
+    <script src="/js/enquiries.js"></script>
 </body>
 </html>

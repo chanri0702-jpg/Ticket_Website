@@ -10,4 +10,4 @@ const querySchema = new mongoose.Schema({
   resolvedAt: { type: Date, default: null }
 })
 
-module.exports = mongoose.model('Enquery', querySchema)
+module.exports = mongoose.model('Enquery', querySchema, 'enquiries')
