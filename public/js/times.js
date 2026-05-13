@@ -115,6 +115,8 @@ async function loadTime(timeId) {
   const time = allTimes.find(t => t._id === timeId);
   if (!time) return;
 
+  currentTimeId = timeId;
+
   // sidebar active
   document.querySelectorAll('.venue-list-item').forEach(el => el.classList.remove('active'));
   const activeEl = document.querySelector(`.venue-list-item[data-id="${timeId}"]`);
