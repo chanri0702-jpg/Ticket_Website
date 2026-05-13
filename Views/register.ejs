@@ -9,19 +9,7 @@
     <link rel="stylesheet" href="/css/register.css">
 </head>
 <body>
-    <nav>
-        <a href="/" class="logo">TICKETSTREAM</a>
-        <ul class="nav-links">
-            <li><a href="/">Events</a></li>
-            <li><a href="/contact">Support</a></li>
-            <% if (user) { %>
-                <li><a href="/" class="btn-login">Dashboard</a></li>
-                <li><a href="/auth/logout" class="btn-login">Logout</a></li>
-            <% } else { %>
-                <li><a href="/auth/login" class="btn-login">Login</a></li>
-            <% } %>
-        </ul>
-    </nav>
+  <%- include('partials/header') %>
 
     <div class="container mt-5">
         <div class="row justify-content-center">
