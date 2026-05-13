@@ -13,25 +13,29 @@ const isLoggedIn = (user) => {
     return user !== null && user !== undefined;
 };
 
-// Middleware to protect routes (only logged in users)
-const requireAuth = (req, res, next) => {
-    if (req.session.user) {
-        return next();
-    }
-    const returnTo = encodeURIComponent(req.originalUrl);
-    res.redirect('/auth/login?redirect=' + returnTo);
-};
-
 // Middleware to protect admin-only routes
 const requireAdmin = (req, res, next) => {
     if (req.session.user && isAdmin(req.session.user)) {
         return next();
     }
     // Check if it's an API request - return JSON
-    if (req.path.startsWith('/api/')) {
+    if (req.originalUrl.startsWith('/api/')) {
         return res.status(403).json({ message: 'Admin access required' });
     }
     res.status(403).send('Admin access required');
+};
+
+// Middleware to protect routes (only logged in users)
+const requireAuth = (req, res, next) => {
+    if (req.session.user) {
+        return next();
+    }
+    // Check if it's an API request - return JSON
+    if (req.originalUrl.startsWith('/api/')) {
+        return res.status(401).json({ message: 'Login required' });
+    }
+    const returnTo = encodeURIComponent(req.originalUrl);
+    res.redirect('/auth/login?redirect=' + returnTo);
 };
 
 // Make user available to all views (use in server.js)

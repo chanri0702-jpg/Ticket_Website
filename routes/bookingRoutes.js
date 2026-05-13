@@ -1,10 +1,11 @@
 const express = require('express')
 const router = express.Router()
 const bookingController = require('../controllers/bookingController')
+const { requireAuth, requireAdmin } = require('../middleware/auth')
 
-router.get('/admin/analytics/', bookingController.getAdminAnalytics) // get admin analytics data
-router.get('/user/:email', bookingController.getUserBookings) // get all bookings for a user
-router.post('/',bookingController.createBooking)   // create a booking
-router.delete('/:id',bookingController.cancelBooking)   // cancel a booking
+router.get('/admin/analytics/', requireAdmin, bookingController.getAdminAnalytics)
+router.get('/user/:email', requireAuth, bookingController.getUserBookings)
+router.post('/', requireAuth, bookingController.createBooking)
+router.delete('/:id', requireAuth, bookingController.cancelBooking)
 
 module.exports = router

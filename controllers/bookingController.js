@@ -3,7 +3,7 @@ const Times   = require('../models/times')
 const Event   = require('../models/event')
 const auth = require('../middleware/auth')
 
-
+//make pages -server
 const getBookingPage = async (req, res) => {
   try {
     res.render('booking');
@@ -18,6 +18,8 @@ const getAdminBookingPage = async (req, res) => {
     res.status(500).json({ message: 'Failed to load admin booking page', error: err.message });
   }
 };
+
+
 // ─── GET /api/bookings/user/:email ──────────────────────────────────────────
 // Returns all bookings for a user, populated with event details
 const getUserBookings = async (req, res) => {

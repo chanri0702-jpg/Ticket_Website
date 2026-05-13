@@ -1,10 +1,11 @@
 const express = require('express')
 const router = express.Router()
 const enqueryController = require('../controllers/enqueryController')
+const { requireAuth, requireAdmin } = require('../middleware/auth')
 
-router.post('/',enqueryController.createQuery)       // user submits a query
-router.get('/user/:email',enqueryController.getUserQueries)    // user sees their queries
-router.get('/',enqueryController.getAllQueries)      // admin sees all queries
-router.put('/:id',enqueryController.respondToQuery)    // admin responds to query
+router.post('/', requireAuth, enqueryController.createQuery)
+router.get('/user/:email', requireAuth, enqueryController.getUserQueries)
+router.get('/', requireAdmin, enqueryController.getAllQueries)
+router.put('/:id', requireAdmin, enqueryController.respondToQuery)
 
 module.exports = router

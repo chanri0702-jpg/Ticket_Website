@@ -16,7 +16,7 @@ const getTimesPage = async (req, res) => {
 const getTimesByEvent = async (req, res) => {
   try {
     const times = await Times.find({ eventID: req.params.eventID })
-    if (!times) return res.status(404).json({ message: 'No time slots found' })
+    if (!times.length) return res.status(404).json({ message: 'No time slots found' })
     res.json(times)
   } catch (err) {
     res.status(500).json({ message: 'Failed to get time slots', error: err.message })
