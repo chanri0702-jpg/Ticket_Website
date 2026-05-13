@@ -31,6 +31,7 @@ function switchTab(name) {
 let selectedSeats   = []
 let currentTimeSlot = null
 let currentEvent    = null
+let isGeneralAdmission = false   // tracks whether current slot has no seat layout
 
 async function initBookingTab() {
   try {
@@ -46,20 +47,17 @@ async function initBookingTab() {
       opt.dataset.image = e.image || ''
       sel.appendChild(opt)
     })
-    
+
     // Pre-fill event if coming from view-event page
     const eventId = getUrlParam('eventId')
-    const timeId = getUrlParam('timeId')
+    const timeId  = getUrlParam('timeId')
     if (eventId) {
-      // Make sure the option exists
       const option = Array.from(sel.options).find(o => o.value === eventId)
       if (option) {
         sel.value = eventId
         await onEventChange()
-        
-        // Pre-fill time if provided
+
         if (timeId) {
-          // Wait a moment for times to load
           await new Promise(r => setTimeout(r, 100))
           const timeSel = $('book-time')
           const timeOption = Array.from(timeSel.options).find(o => o.value === timeId)
@@ -77,20 +75,22 @@ async function onEventChange() {
   const sel   = $('book-event')
   const opt   = sel.options[sel.selectedIndex]
   const evId  = sel.value
-  currentEvent = evId ? { 
-    id: evId, 
-    price: +opt.dataset.price, 
-    host: opt.dataset.host, 
-    name: opt.textContent,
+  currentEvent = evId ? {
+    id:    evId,
+    price: +opt.dataset.price,
+    host:  opt.dataset.host,
+    name:  opt.textContent,
     image: opt.dataset.image
   } : null
 
-  // Reset time slot
+  // Reset
   const tSel = $('book-time')
   tSel.innerHTML = '<option value="">— choose a time —</option>'
   $('time-info').style.display = 'none'
   $('seat-map-inner').innerHTML = '<div class="empty-state"><p>Select a time slot to view the seat map.</p></div>'
+  $('block-selector').style.display = 'none'
   selectedSeats = []
+  isGeneralAdmission = false
   updateOrderSummary()
 
   if (!evId) { $('event-info').style.display = 'none'; return }
@@ -113,6 +113,7 @@ async function onEventChange() {
 async function onTimeChange() {
   const timeId = $('book-time').value
   selectedSeats = []
+  isGeneralAdmission = false
   updateOrderSummary()
 
   const blockSel = $('book-block')
@@ -130,7 +131,7 @@ async function onTimeChange() {
     $('time-info').style.display = 'flex'
 
     if (currentTimeSlot.seats && currentTimeSlot.seats.length > 0) {
-      // Populate block dropdown
+      // ── Venue has an assigned seating layout ──
       const blocks = [...new Set(currentTimeSlot.seats.map(s => s.block))].sort()
       blocks.forEach(b => {
         const o = document.createElement('option')
@@ -141,7 +142,6 @@ async function onTimeChange() {
         blockSel.appendChild(o)
       })
       $('block-selector').style.display = 'block'
-      // Auto-select first block and render it
       if (blocks.length > 0) {
         blockSel.value = blocks[0]
         renderSeatMap(currentTimeSlot.seats.filter(s => s.block === blocks[0]))
@@ -149,7 +149,10 @@ async function onTimeChange() {
         $('seat-map-inner').innerHTML = '<div class="empty-state"><p>No seats available in any block.</p></div>'
       }
     } else {
-      renderSeatMap(currentTimeSlot.seats || [])
+      // ── Venue uses general admission — no individual seat layout ──
+      isGeneralAdmission = true
+      $('block-selector').style.display = 'none'
+      renderGeneralAdmission(currentTimeSlot.seatsAvailable)
     }
   } catch { toast('Could not load seat map', 'error') }
 }
@@ -163,8 +166,69 @@ function onBlockChange() {
   renderSeatMap(currentTimeSlot.seats.filter(s => s.block === block))
 }
 
+// ─── GENERAL ADMISSION (no seating template) ─────────────────────────────────
+function renderGeneralAdmission(available) {
+  const container = $('seat-map-inner')
+  container.innerHTML = `
+    <div style="
+      padding: 1.75rem;
+      background: #f8fafc;
+      border-radius: .75rem;
+      border: 1.5px solid #e2e8f0;
+      max-width: 420px;
+    ">
+      <p style="font-weight:700;font-size:1rem;margin-bottom:.5rem;">🎟️ General Admission</p>
+      <p style="color:#64748b;font-size:.9rem;margin-bottom:1.25rem;">
+        This event uses general admission — seats are not pre-assigned.
+        Select how many tickets you would like.
+      </p>
+      <div style="display:flex;align-items:center;gap:.875rem;flex-wrap:wrap;">
+        <label style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#475569;">
+          Tickets
+        </label>
+        <input
+          type="number"
+          id="ga-qty"
+          min="1"
+          max="${available}"
+          value="1"
+          style="
+            width:80px;
+            padding:.5rem .75rem;
+            border:1.5px solid #e2e8f0;
+            border-radius:.375rem;
+            font-size:.95rem;
+            outline:none;
+          "
+          oninput="updateGASelection()"
+        >
+        <span style="color:#64748b;font-size:.875rem;">(${available} available)</span>
+      </div>
+    </div>`
+
+  // Trigger initial summary update
+  updateGASelection()
+}
+
+function updateGASelection() {
+  const qtyEl = $('ga-qty')
+  if (!qtyEl || !currentEvent) return
+  const qty = Math.max(1, Math.min(parseInt(qtyEl.value) || 1, currentTimeSlot.seatsAvailable))
+  qtyEl.value = qty
+
+  // Represent GA tickets as pseudo-seats so the order summary and confirm flow
+  // work without changes. The server handles the no-layout case separately.
+  selectedSeats = Array.from({ length: qty }, (_, i) => ({
+    row:        'GA',
+    seatNumber: i + 1,
+    block:      'General'
+  }))
+  updateOrderSummary()
+}
+
+// ─── SEAT MAP (assigned seating) ─────────────────────────────────────────────
 function renderSeatMap(seats) {
-  // Group by row only (block is already filtered)
+  // Group by row — block is already filtered upstream
   const rows = {}
   seats.forEach(s => {
     if (!rows[s.row]) rows[s.row] = []
@@ -174,20 +238,10 @@ function renderSeatMap(seats) {
   const container = $('seat-map-inner')
   container.innerHTML = ''
 
-  // Display venue layout image if available
+  // Show venue layout image if available
   if (currentTimeSlot && currentTimeSlot.eventID) {
     const event = currentTimeSlot.eventID
-    let venue = null
-    
-    // Handle nested populate: eventID could have venueID
-    if (event.venueID) {
-      venue = typeof event.venueID === 'object' ? event.venueID : null
-    }
-    
-    /* console.log('[BookingDebug] currentTimeSlot.eventID:', event)
-    console.log('[BookingDebug] venue:', venue)
-    console.log('[BookingDebug] venue.layoutImage:', venue ? venue.layoutImage : 'NO VENUE') */
-    
+    const venue = typeof event.venueID === 'object' ? event.venueID : null
     if (venue && venue.layoutImage) {
       const imgContainer = document.createElement('div')
       imgContainer.style.cssText = 'margin-bottom:1.5rem;text-align:center;'
@@ -201,43 +255,40 @@ function renderSeatMap(seats) {
     }
   }
 
-  const now = new Date()
-
   if (Object.keys(rows).length === 0) {
-    container.innerHTML += '<div class="empty-state"><p>No seats found in this block.</p></div>'
+    container.innerHTML += '<div class="empty-state"><p>No seats available in this block.</p></div>'
     return
   }
 
-  const blocks = { '': rows }   // single-block wrapper for loop below
-  Object.entries(blocks).forEach(([block, rows]) => {
-    Object.entries(rows).sort().forEach(([row, rowSeats]) => {
-      const rowEl = document.createElement('div')
-      rowEl.className = 'seat-row'
-      const lbl = document.createElement('div')
-      lbl.className   = 'row-label'
-      lbl.textContent = row
-      rowEl.appendChild(lbl)
+  const now = new Date()
 
-      rowSeats.sort((a, b) => a.seatNumber - b.seatNumber).forEach(s => {
-        const seatEl = document.createElement('div')
-        seatEl.className   = 'seat'
-        seatEl.textContent = s.seatNumber
+  Object.entries(rows).sort().forEach(([row, rowSeats]) => {
+    const rowEl = document.createElement('div')
+    rowEl.className = 'seat-row'
+    const lbl = document.createElement('div')
+    lbl.className   = 'row-label'
+    lbl.textContent = row
+    rowEl.appendChild(lbl)
 
-        const heldByOther = s.heldUntil && new Date(s.heldUntil) > now && s.heldBy !== $('book-email').value
-        const isAvail     = s.isAvailable && !heldByOther
+    rowSeats.sort((a, b) => a.seatNumber - b.seatNumber).forEach(s => {
+      const seatEl = document.createElement('div')
+      seatEl.className   = 'seat'
+      seatEl.textContent = s.seatNumber
 
-        if (!isAvail) {
-          seatEl.classList.add('taken')
-          seatEl.title = 'Not available'
-        } else {
-          seatEl.classList.add('available')
-          seatEl.title = `${s.block} ${row}${s.seatNumber}`
-          seatEl.onclick = () => toggleSeat(seatEl, s)
-        }
-        rowEl.appendChild(seatEl)
-      })
-      container.appendChild(rowEl)
+      const heldByOther = s.heldUntil && new Date(s.heldUntil) > now && s.heldBy !== $('book-email').value
+      const isAvail     = s.isAvailable && !heldByOther
+
+      if (!isAvail) {
+        seatEl.classList.add('taken')
+        seatEl.title = 'Not available'
+      } else {
+        seatEl.classList.add('available')
+        seatEl.title = `${s.block} ${row}${s.seatNumber}`
+        seatEl.onclick = () => toggleSeat(seatEl, s)
+      }
+      rowEl.appendChild(seatEl)
     })
+    container.appendChild(rowEl)
   })
 }
 
@@ -256,53 +307,65 @@ function toggleSeat(el, seat) {
 
 function updateOrderSummary() {
   const hasSeats = selectedSeats.length > 0 && currentEvent
-  $('summary-placeholder').style.display = hasSeats ? 'none' : 'block'
+  $('summary-placeholder').style.display = hasSeats ? 'none'  : 'block'
   $('order-summary').style.display       = hasSeats ? 'block' : 'none'
   if (!hasSeats) return
 
-  const tags = selectedSeats.map(s =>
-    `<span class="sel-seat-tag">${s.block} ${s.row}${s.seatNumber}</span>`
-  ).join('')
+  let tagsHtml
+  if (isGeneralAdmission) {
+    tagsHtml = `<span class="sel-seat-tag">${selectedSeats.length} × General Admission</span>`
+  } else {
+    tagsHtml = selectedSeats.map(s =>
+      `<span class="sel-seat-tag">${s.block} ${s.row}${s.seatNumber}</span>`
+    ).join('')
+  }
 
   $('selected-seats-display').innerHTML = `
     <div class="selected-summary">
-      <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem">Selected Seats (${selectedSeats.length})</div>
-      ${tags}
+      <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem">
+        Selected (${selectedSeats.length})
+      </div>
+      ${tagsHtml}
     </div>`
 
   const total = (currentEvent.price * selectedSeats.length).toFixed(2)
   $('order-total').textContent = fmt(total)
 }
 
+// ─── CONFIRM BOOKING ─────────────────────────────────────────────────────────
 async function confirmBooking() {
   const email  = $('book-email').value.trim()
   const timeId = $('book-time').value
-  if (!email)              return toast('Please enter your email address', 'error')
-  if (!currentEvent)       return toast('Please select an event', 'error')
-  if (!timeId)             return toast('Please select a time slot', 'error')
-  if (!selectedSeats.length) return toast('Please select at least one seat', 'error')
+  if (!email)                return toast('Please enter your email address', 'error')
+  if (!currentEvent)         return toast('Please select an event', 'error')
+  if (!timeId)               return toast('Please select a time slot', 'error')
+  if (!selectedSeats.length) return toast('Please select at least one ticket', 'error')
 
   const btn = $('confirm-btn')
   btn.innerHTML = '<span class="loader"></span> Processing…'
   btn.disabled  = true
 
   try {
+    const body = {
+      email,
+      eventID:            currentEvent.id,
+      timeID:             timeId,
+      seats:              selectedSeats,
+      isGeneralAdmission  // tells the server not to validate seat positions
+    }
+
     const res  = await fetch(`${API}/bookings`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email,
-        eventID: currentEvent.id,
-        timeID:  timeId,
-        seats:   selectedSeats
-      })
+      body:    JSON.stringify(body)
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.message)
 
     toast(`Booking confirmed! Total: ${fmt(data.total)}`, 'success')
-    selectedSeats = []
-    await onTimeChange()          // reload seat map
+    selectedSeats      = []
+    isGeneralAdmission = false
+    await onTimeChange()        // reload seat map / GA widget
     updateOrderSummary()
   } catch (err) {
     toast(err.message || 'Booking failed', 'error')
@@ -341,10 +404,11 @@ async function loadHistory() {
     bookings.forEach(b => {
       const eventName = b.eventID?.name || 'Event'
       const time      = b.timeID?.eventTime ? fmtDate(b.timeID.eventTime) : '—'
-      const tickets   = b.tickets.map(t =>
-        `<span class="ticket-tag">${t.block} ${t.row}${t.seatNumber}</span>`
-      ).join('')
-      const paydate   = fmtDate(b.paydate)
+      const isGA      = b.tickets.length > 0 && b.tickets[0].block === 'General' && b.tickets[0].row === 'GA'
+      const tickets   = isGA
+        ? `<span class="ticket-tag">${b.tickets.length} × General Admission</span>`
+        : b.tickets.map(t => `<span class="ticket-tag">${t.block} ${t.row}${t.seatNumber}</span>`).join('')
+      const paydate = fmtDate(b.paydate)
 
       const card = document.createElement('div')
       card.className = 'booking-card'
@@ -394,25 +458,17 @@ async function loadAnalytics() {
     const res  = await fetch(`${API}/bookings/admin/analytics`)
     const data = await res.json()
 
-    // Summary stats
     $('stat-bookings').textContent = data.summary.totalBookings.toLocaleString()
     $('stat-tickets').textContent  = data.summary.totalTickets.toLocaleString()
     $('stat-revenue').textContent  = fmt(data.summary.totalRevenue)
 
-    // Popular events table
     if (!data.popularEvents.length) {
       $('popular-events-list').innerHTML = '<p style="color:var(--muted);text-align:center;padding:1rem">No data yet.</p>'
     } else {
       $('popular-events-list').innerHTML = `
         <table class="data-table">
           <thead>
-            <tr>
-              <th>#</th>
-              <th>Event</th>
-              <th>Host</th>
-              <th>Tickets</th>
-              <th>Revenue</th>
-            </tr>
+            <tr><th>#</th><th>Event</th><th>Host</th><th>Tickets</th><th>Revenue</th></tr>
           </thead>
           <tbody>
             ${data.popularEvents.map((e, i) => `
@@ -427,13 +483,12 @@ async function loadAnalytics() {
         </table>`
     }
 
-    // Capacity usage
     if (!data.capacityUsage.length) {
       $('capacity-list').innerHTML = '<p style="color:var(--muted);text-align:center;padding:1rem">No time slots found.</p>'
     } else {
       $('capacity-list').innerHTML = data.capacityUsage.map(c => {
-        const pct   = Math.round(c.usagePercent)
-        const cls   = pct >= 90 ? 'high' : pct >= 65 ? 'warn' : ''
+        const pct = Math.round(c.usagePercent)
+        const cls = pct >= 90 ? 'high' : pct >= 65 ? 'warn' : ''
         return `
           <div class="capacity-row">
             <div>
@@ -448,7 +503,6 @@ async function loadAnalytics() {
       }).join('')
     }
 
-    // Bookings-over-time bar chart
     renderChart(data.bookingsOverTime)
   } catch (err) {
     toast('Failed to load analytics. Is the server running?', 'error')
@@ -464,16 +518,13 @@ function renderChart(data) {
     container.innerHTML = '<p style="color:var(--muted);text-align:center;padding:1rem">No bookings in the last 30 days.</p>'
     return
   }
-
   const maxCount = Math.max(...data.map(d => d.count), 1)
-  // Show last 14 data points max to avoid crowding
-  const slice = data.slice(-14)
-
+  const slice    = data.slice(-14)
   container.innerHTML = `
     <div class="mini-chart">
       ${slice.map(d => {
         const h   = Math.max(4, Math.round((d.count / maxCount) * 72))
-        const lbl = d._id.slice(5) // MM-DD
+        const lbl = d._id.slice(5)
         return `
           <div class="bar-col">
             <div class="bar-col-fill" style="height:${h}px" title="${d._id}: ${d.count} bookings"></div>

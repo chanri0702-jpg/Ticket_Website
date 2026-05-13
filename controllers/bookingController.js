@@ -2,14 +2,15 @@ const Booking = require('../models/booking')
 const Times   = require('../models/times')
 const Event   = require('../models/event')
 
-//make pages -server
+// make pages -server
 const getBookingPage = async (req, res) => {
   try {
-    res.render('booking');
+    res.render('booking', { user: req.session.user || null });
   } catch (err) {
     res.status(500).json({ message: 'Failed to load booking page', error: err.message });
   }
 };
+
 const getAdminBookingPage = async (req, res) => {
   try {
     res.render('booking-admin');
@@ -18,16 +19,13 @@ const getAdminBookingPage = async (req, res) => {
   }
 };
 
-
 // ─── GET /api/bookings/user/:email ──────────────────────────────────────────
-// Returns all bookings for a user, populated with event details
 const getUserBookings = async (req, res) => {
   try {
     const bookings = await Booking.find({ email: req.params.email })
       .populate('eventID', 'name description host image price')
       .populate('timeID',  'eventTime')
       .sort({ paydate: -1 })
-
     res.json(bookings)
   } catch (err) {
     res.status(500).json({ message: 'Failed to get bookings', error: err.message })
@@ -35,70 +33,84 @@ const getUserBookings = async (req, res) => {
 }
 
 // ─── POST /api/bookings ──────────────────────────────────────────────────────
-// Creates a booking with automated capacity validation + seat locking
 const createBooking = async (req, res) => {
-  const { email, eventID, timeID, seats } = req.body
-  // seats: [{ row, seatNumber, block }, ...]
+  const { email, eventID, timeID, seats, isGeneralAdmission } = req.body
 
   if (!email || !eventID || !timeID || !seats || !seats.length) {
     return res.status(400).json({ message: 'Missing required fields: email, eventID, timeID, seats' })
   }
 
   try {
-    // 1. Fetch the time slot (with a lean write lock via findById + save)
     const timeSlot = await Times.findById(timeID)
     if (!timeSlot) return res.status(404).json({ message: 'Time slot not found' })
 
-    // 2. Fetch event for price calculation
     const event = await Event.findById(eventID)
-    if (!event) return res.status(404).json({ message: 'Event not found' })
+    if (!event)   return res.status(404).json({ message: 'Event not found' })
 
-    // 3. Capacity check
+    // Capacity check (applies to both assigned and GA venues)
     if (timeSlot.seatsAvailable < seats.length) {
       return res.status(409).json({
         message: `Not enough seats available. Requested: ${seats.length}, Available: ${timeSlot.seatsAvailable}`
       })
     }
 
-    // 4. Validate & lock each requested seat
-    const now = new Date()
-    const lockedSeats = []
+    const now         = new Date()
+    let   lockedSeats = []
 
-    for (const requested of seats) {
-      const seat = timeSlot.seats.find(
-        s => s.row === requested.row &&
-             s.seatNumber === requested.seatNumber &&
-             s.block === requested.block
-      )
+    if (isGeneralAdmission || !timeSlot.seats || timeSlot.seats.length === 0) {
+      // ── General admission: no seat map to validate — just decrement count ──
+      lockedSeats = seats.map((_, i) => ({
+        row:        'GA',
+        seatNumber: i + 1,
+        block:      'General'
+      }))
+    } else {
+      // ── Assigned seating: validate and lock each requested seat ──
+      for (const requested of seats) {
+        const seat = timeSlot.seats.find(
+          s => s.row        === requested.row       &&
+               s.seatNumber === requested.seatNumber &&
+               s.block      === requested.block
+        )
 
-      if (!seat) {
-        return res.status(404).json({
-          message: `Seat ${requested.block} ${requested.row}${requested.seatNumber} not found`
-        })
+        if (!seat) {
+          return res.status(404).json({
+            message: `Seat ${requested.block} ${requested.row}${requested.seatNumber} not found`
+          })
+        }
+
+        const isHeldByOther =
+          seat.heldUntil && seat.heldUntil > now && seat.heldBy !== email
+
+        if (!seat.isAvailable || isHeldByOther) {
+          return res.status(409).json({
+            message: `Seat ${requested.block} ${requested.row}${requested.seatNumber} is not available`
+          })
+        }
+
+        seat.isAvailable = false
+        seat.heldUntil   = null
+        seat.heldBy      = null
+        lockedSeats.push({ row: seat.row, seatNumber: seat.seatNumber, block: seat.block })
       }
-
-      // Release expired holds
-      const isHeldByOther =
-        seat.heldUntil && seat.heldUntil > now && seat.heldBy !== email
-
-      if (!seat.isAvailable || isHeldByOther) {
-        return res.status(409).json({
-          message: `Seat ${requested.block} ${requested.row}${requested.seatNumber} is not available`
-        })
-      }
-
-      seat.isAvailable = false
-      seat.heldUntil   = null
-      seat.heldBy      = null
-      lockedSeats.push({ row: seat.row, seatNumber: seat.seatNumber, block: seat.block })
     }
 
-    // 5. Update available seat count and save
+    // Update available count and save time slot
     timeSlot.seatsAvailable -= seats.length
     await timeSlot.save()
 
-    // 6. Create the booking
-    const total   = parseFloat((event.price * seats.length).toFixed(2))
+    // Calculate total (supports per-block pricing)
+    let total
+    if (event.priceType === 'custom' && event.blockPrices && event.blockPrices.size > 0) {
+      total = lockedSeats.reduce((sum, s) => {
+        const blockPrice = event.blockPrices.get(s.block) ?? event.price
+        return sum + blockPrice
+      }, 0)
+    } else {
+      total = event.price * seats.length
+    }
+    total = parseFloat(total.toFixed(2))
+
     const booking = new Booking({
       paydate: now,
       email,
@@ -122,34 +134,40 @@ const createBooking = async (req, res) => {
 }
 
 // ─── DELETE /api/bookings/:id ─────────────────────────────────────────────────
-// Cancels a booking and releases the seats back
 const cancelBooking = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id)
     if (!booking) return res.status(404).json({ message: 'Booking not found' })
 
-    // Ensure the requesting user owns this booking
     const userEmail = req.session.user && req.session.user.email
     const isAdmin   = req.session.user && req.session.user.role === 'admin'
     if (!isAdmin && booking.email !== userEmail) {
       return res.status(403).json({ message: 'Not authorised to cancel this booking' })
     }
 
-    // Release seats in the time slot
+    // Release seats back to the time slot
     const timeSlot = await Times.findById(booking.timeID)
     if (timeSlot) {
-      for (const ticket of booking.tickets) {
-        const seat = timeSlot.seats.find(
-          s => s.row === ticket.row &&
-               s.seatNumber === ticket.seatNumber &&
-               s.block === ticket.block
-        )
-        if (seat) {
-          seat.isAvailable = true
-          seat.heldUntil   = null
-          seat.heldBy      = null
+      const isGA = booking.tickets.length > 0 &&
+                   booking.tickets[0].block === 'General' &&
+                   booking.tickets[0].row   === 'GA'
+
+      if (!isGA && timeSlot.seats && timeSlot.seats.length > 0) {
+        // Assigned seating — restore individual seat availability
+        for (const ticket of booking.tickets) {
+          const seat = timeSlot.seats.find(
+            s => s.row        === ticket.row       &&
+                 s.seatNumber === ticket.seatNumber &&
+                 s.block      === ticket.block
+          )
+          if (seat) {
+            seat.isAvailable = true
+            seat.heldUntil   = null
+            seat.heldBy      = null
+          }
         }
       }
+      // For GA venues, just restore the count (no individual seats to unlock)
       timeSlot.seatsAvailable += booking.tickets.length
       await timeSlot.save()
     }
@@ -162,10 +180,8 @@ const cancelBooking = async (req, res) => {
 }
 
 // ─── GET /api/bookings/admin/analytics ───────────────────────────────────────
-// Admin: total bookings, revenue, popular events, capacity usage per time slot
 const getAdminAnalytics = async (req, res) => {
   try {
-    // Total bookings & revenue
     const totals = await Booking.aggregate([
       {
         $group: {
@@ -177,7 +193,6 @@ const getAdminAnalytics = async (req, res) => {
       }
     ])
 
-    // Popular events (by ticket count)
     const popularEvents = await Booking.aggregate([
       {
         $group: {
@@ -191,10 +206,7 @@ const getAdminAnalytics = async (req, res) => {
       { $limit: 10 },
       {
         $lookup: {
-          from:         'events',
-          localField:   '_id',
-          foreignField: '_id',
-          as:           'event'
+          from: 'events', localField: '_id', foreignField: '_id', as: 'event'
         }
       },
       { $unwind: '$event' },
@@ -209,7 +221,6 @@ const getAdminAnalytics = async (req, res) => {
       }
     ])
 
-    // Capacity usage per time slot
     const capacityUsage = await Times.aggregate([
       {
         $project: {
@@ -230,10 +241,7 @@ const getAdminAnalytics = async (req, res) => {
       { $limit: 20 },
       {
         $lookup: {
-          from:         'events',
-          localField:   'eventID',
-          foreignField: '_id',
-          as:           'event'
+          from: 'events', localField: 'eventID', foreignField: '_id', as: 'event'
         }
       },
       { $unwind: '$event' },
@@ -249,7 +257,6 @@ const getAdminAnalytics = async (req, res) => {
       }
     ])
 
-    // Bookings over time (last 30 days, grouped by day)
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
@@ -257,9 +264,7 @@ const getAdminAnalytics = async (req, res) => {
       { $match: { paydate: { $gte: thirtyDaysAgo } } },
       {
         $group: {
-          _id: {
-            $dateToString: { format: '%Y-%m-%d', date: '$paydate' }
-          },
+          _id:     { $dateToString: { format: '%Y-%m-%d', date: '$paydate' } },
           count:   { $sum: 1 },
           revenue: { $sum: '$total' }
         }
@@ -278,4 +283,11 @@ const getAdminAnalytics = async (req, res) => {
   }
 }
 
-module.exports = { getUserBookings, createBooking, cancelBooking, getAdminAnalytics, getBookingPage, getAdminBookingPage}
+module.exports = {
+  getUserBookings,
+  createBooking,
+  cancelBooking,
+  getAdminAnalytics,
+  getBookingPage,
+  getAdminBookingPage
+}
