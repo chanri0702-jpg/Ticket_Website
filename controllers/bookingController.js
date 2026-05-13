@@ -1,7 +1,6 @@
 const Booking = require('../models/booking')
 const Times   = require('../models/times')
 const Event   = require('../models/event')
-const auth = require('../middleware/auth')
 
 //make pages -server
 const getBookingPage = async (req, res) => {
@@ -128,6 +127,13 @@ const cancelBooking = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id)
     if (!booking) return res.status(404).json({ message: 'Booking not found' })
+
+    // Ensure the requesting user owns this booking
+    const userEmail = req.session.user && req.session.user.email
+    const isAdmin   = req.session.user && req.session.user.role === 'admin'
+    if (!isAdmin && booking.email !== userEmail) {
+      return res.status(403).json({ message: 'Not authorised to cancel this booking' })
+    }
 
     // Release seats in the time slot
     const timeSlot = await Times.findById(booking.timeID)

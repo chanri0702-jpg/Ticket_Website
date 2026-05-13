@@ -60,7 +60,9 @@ app.use(session({
   saveUninitialized: false,
   cookie: { 
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    httpOnly: true
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
   }
 }));
 
@@ -149,7 +151,6 @@ app.get('/view-event', async (req, res) => {
 
 // Auth / misc pages
 app.get('/contact', (req, res) => res.render('contact'));
-app.get('/login', (req, res) => res.render('login'));
 
 
 //protected user path

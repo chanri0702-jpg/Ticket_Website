@@ -79,8 +79,10 @@ const postLogin = async (req, res) => {
             role: user.role
         };
         
-        // Successful login
-        const redirectTo = req.body.redirect || req.query.redirect || '/';
+        // Successful login — validate redirect to prevent open redirect
+        const rawRedirect = req.body.redirect || req.query.redirect || '/';
+        // Only allow relative paths (same-origin)
+        const redirectTo = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/';
         return res.json({
             success: true,
             message: 'Login successful',

@@ -77,8 +77,8 @@ const uploadImage = async (req, res) => {
       return res.status(400).json({ message: 'No file provided' })
     }
     const cloudinary = require('cloudinary').v2
-    const b64 = Buffer.from(req.file.buffer).toString('base64')
-    const dataURI = 'data:' + req.file.mimetype + ';base64,' + b64
+    const b64 = Buffer.from(req.file.buffer).toString('base64') // convert buffer to base64 string
+    const dataURI = 'data:' + req.file.mimetype + ';base64,' + b64 // create data URI format for Cloudinary
     const result = await cloudinary.uploader.upload(dataURI, {
       folder: 'ticketstream/events',
       resource_type: 'auto',

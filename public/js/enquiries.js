@@ -12,6 +12,8 @@ async function loadAllQueries() {
             return;
         }
 
+        const esc = str => String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+
         area.innerHTML = queries.map(q => {
             const dateSubmitted = new Date(q.createdAt).toLocaleDateString('en-ZA', { 
                 day: 'numeric', month: 'short', year: 'numeric' 
@@ -20,17 +22,17 @@ async function loadAllQueries() {
             return `
             <div class="query-card">
                 <div style="display: flex; justify-content: space-between; align-items: start;">
-                    <h3>${q.subject}</h3>
-                    <span style="font-size: 0.85rem; color: var(--light-text); font-weight: 600;">${dateSubmitted}</span>
+                    <h3>${esc(q.subject)}</h3>
+                    <span style="font-size: 0.85rem; color: var(--light-text); font-weight: 600;">${esc(dateSubmitted)}</span>
                 </div>
-                <p><strong>From:</strong> ${q.email}</p>
-                <p><strong>Message:</strong> ${q.message}</p>
-                <p><strong>Current Status:</strong> <span style="text-transform: uppercase; font-weight: bold; color: var(--accent-color);">${q.status}</span></p>
+                <p><strong>From:</strong> ${esc(q.email)}</p>
+                <p><strong>Message:</strong> ${esc(q.message)}</p>
+                <p><strong>Current Status:</strong> <span style="text-transform: uppercase; font-weight: bold; color: var(--accent-color);">${esc(q.status)}</span></p>
                 
                 <div class="admin-update-section">
                     <div class="form-group">
                         <label>Update Status</label>
-                        <select id="status-${q._id}">
+                        <select id="status-${esc(q._id)}">
                             <option value="open" ${q.status === 'open' ? 'selected' : ''}>Open</option>
                             <option value="in-progress" ${q.status === 'in-progress' ? 'selected' : ''}>In Progress</option>
                             <option value="resolved" ${q.status === 'resolved' ? 'selected' : ''}>Resolved</option>
@@ -39,10 +41,10 @@ async function loadAllQueries() {
 
                     <div class="form-group">
                         <label>Admin Response</label>
-                        <textarea id="response-${q._id}" rows="2" placeholder="Type your response to the user here...">${q.response || ''}</textarea>
+                        <textarea id="response-${esc(q._id)}" rows="2" placeholder="Type your response to the user here...">${esc(q.response)}</textarea>
                     </div>
 
-                    <button class="btn-submit" onclick="updateQuery('${q._id}')" style="width: 200px; padding: 0.75rem;">Save Changes</button>
+                    <button class="btn-submit" onclick="updateQuery('${esc(q._id)}')" style="width: 200px; padding: 0.75rem;">Save Changes</button>
                 </div>
             </div>
             `;
