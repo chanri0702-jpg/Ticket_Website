@@ -238,7 +238,7 @@ function openReservePanel() {
       const img = document.createElement('img');
       img.src = currentVenue.layoutImage;
       img.alt = currentVenue.name + ' seating layout';
-      img.style.cssText = 'max-width:100%;height:auto;border-radius:.5rem;max-height:400px;';
+      img.style.cssText = 'max-width:100%;height:auto;border-radius:.5rem;max-height:250px;';
       imgContainer.appendChild(img);
       document.getElementById('seatGrid').parentElement.insertBefore(imgContainer, document.getElementById('seatGrid'));
     }

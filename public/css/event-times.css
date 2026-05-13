@@ -102,6 +102,7 @@
   flex-direction: column;
   box-shadow: -4px 0 24px rgba(0,0,0,0.15);
   animation: slideIn 0.25s ease;
+  overflow: hidden;
 }
  
 @keyframes slideIn {
@@ -115,10 +116,15 @@
   justify-content: space-between;
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid #e2e8f0;
-  position: sticky;
-  top: 0;
+  flex-shrink: 0;
   background: white;
   z-index: 1;
+}
+
+.reserve-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
  
 .reserve-panel-header h3 {
@@ -328,7 +334,8 @@
   gap: 0.75rem;
   padding: 1.25rem 1.5rem;
   border-top: 1px solid #e2e8f0;
-  margin-top: auto;
+  flex-shrink: 0;
+  background: white;
 }
 
 .form-group textarea {

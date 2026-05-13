@@ -191,6 +191,11 @@ function renderSeatMap(seats) {
     if (venue && venue.layoutImage) {
       const imgContainer = document.createElement('div')
       imgContainer.style.cssText = 'margin-bottom:1.5rem;text-align:center;'
+      // Show URL as text for debugging
+      const debugText = document.createElement('p')
+      debugText.style.cssText = 'font-size:.7rem;color:#999;word-break:break-all;margin-bottom:.5rem;'
+      debugText.textContent = 'Image URL: ' + venue.layoutImage
+      imgContainer.appendChild(debugText)
       const img = document.createElement('img')
       img.src = venue.layoutImage
       img.alt = (venue.name || 'Venue') + ' seating layout'
