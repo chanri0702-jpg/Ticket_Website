@@ -134,7 +134,7 @@ app.get('/view-event', async (req, res) => {
 // Auth / misc pages
 app.get('/contact', (req, res) => res.render('contact'));
 app.get('/login', (req, res) => res.render('login'));
-app.get('/enquiries', (req, res) => res.render('enquiries'));
+
 
 //protected user path
 app.get('/profile',   requireAuth, (req, res) => res.render('profile', { user: req.session.user }))
@@ -150,6 +150,7 @@ app.get('/venues', requireAdmin, venueController.getVenuesPage);
 app.get('/events', requireAdmin, eventController.getEventsPage);
 app.get('/times-admin', requireAdmin, timesController.getTimesPage);
 app.get('/booking-admin', requireAdmin, bookingController.getAdminBookingPage);
+app.get('/enquiries', requireAdmin, (req, res) => res.render('enquiries'));
 //database start
 mongoose.connect(uri)
   .then(() => console.log("Connected to MongoDB"))
